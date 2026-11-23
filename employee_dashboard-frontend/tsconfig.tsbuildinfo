@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/api/apiclient.ts","./src/config/env.config.ts","./src/providers/appprovider.tsx","./src/providers/queryprovider.tsx","./src/utils/cn.ts"],"errors":true,"version":"5.9.3"}
