@@ -185,6 +185,23 @@ function LoginForm() {
         )}
       </button>
 
+      <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-slate-600">
+        <div>
+          <p className="font-semibold text-slate-800">Admin Credentials</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">admin@godavariwaves.com / Admin@123</p>
+        </div>
+        <button
+          className="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-blue-700"
+          onClick={() => {
+            setEmail('admin@godavariwaves.com');
+            setPassword('Admin@123');
+            setAuthError('');
+          }}
+          type="button"
+        >
+          Auto-fill
+        </button>
+      </div>
     </form>
   );
 }

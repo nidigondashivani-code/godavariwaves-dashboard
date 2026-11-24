@@ -40,8 +40,8 @@ export function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Root opens Employee Login; Admin Login preserved untouched at /admin/login and /login */}
-        <Route element={<Navigate replace to="/employee/login" />} path="/" />
+        {/* Root routes to Admin Dashboard; Admin Login at /admin/login and /login, Employee Login at /employee/login */}
+        <Route element={<Navigate replace to="/admin" />} path="/" />
         <Route element={<EmployeeLoginPage />} path="/employee/login" />
         <Route element={<LoginPage />} path="/admin/login" />
         <Route element={<LoginPage />} path="/login" />

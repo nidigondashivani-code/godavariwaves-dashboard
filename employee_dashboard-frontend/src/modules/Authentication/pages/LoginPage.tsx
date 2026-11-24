@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import CompanyLogo from '../../../components/common/CompanyLogo';
 import LoginForm from '../components/LoginForm';
 
@@ -47,6 +48,18 @@ function LoginPage() {
         </div>
 
         <LoginForm />
+
+        <div className="mt-6 border-t border-slate-100 pt-4 text-center">
+          <p className="text-xs text-slate-500">
+            Employee?{' '}
+            <Link
+              className="font-semibold text-blue-600 transition hover:text-blue-700 hover:underline"
+              to="/employee/login"
+            >
+              Sign in to Employee Portal
+            </Link>
+          </p>
+        </div>
       </section>
     </main>
   );

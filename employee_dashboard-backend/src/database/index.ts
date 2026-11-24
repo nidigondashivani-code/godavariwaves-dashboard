@@ -26,6 +26,27 @@ import { PERMISSIONS } from '../constants/permissions.constants';
 import { hashPassword } from '../utils/password.util';
 import { logger } from '../utils/logger.util';
 
+const getId = (model: any): number => {
+  if (!model) return 0;
+  return model.getDataValue ? model.getDataValue('id') : model.id;
+};
+
+const getOrCreate = async (model: any, where: any, defaults: any) => {
+  let record = await model.findOne({ where });
+  if (!record) {
+    try {
+      record = await model.create({ ...defaults, ...where });
+    } catch (err: any) {
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        record = await model.findOne({ where });
+      } else {
+        throw err;
+      }
+    }
+  }
+  return record;
+};
+
 /**
  * Idempotent seed helper aligned with existing Admin Dashboard departments,
  * designations, roles, and admin email without overwriting existing records.
@@ -42,7 +63,7 @@ export const seedDefaultData = async (): Promise<void> => {
   ];
   const roleMap = new Map<string, Role>();
   for (const r of roleSeeds) {
-    const [role] = await Role.findOrCreate({ where: { name: r.name }, defaults: r });
+    const role = await getOrCreate(Role, { name: r.name }, r);
     roleMap.set(r.name, role);
   }
 
@@ -50,14 +71,15 @@ export const seedDefaultData = async (): Promise<void> => {
   const permList = Object.values(PERMISSIONS);
   const permMap = new Map<string, Permission>();
   for (const permName of permList) {
-    const [perm] = await Permission.findOrCreate({
-      where: { name: permName },
-      defaults: {
+    const perm = await getOrCreate(
+      Permission,
+      { name: permName },
+      {
         name: permName,
         module: permName.split('_').slice(-1)[0] || 'general',
         description: permName,
-      },
-    });
+      }
+    );
     permMap.set(permName, perm);
   }
 
@@ -65,10 +87,11 @@ export const seedDefaultData = async (): Promise<void> => {
   const employeeRole = roleMap.get(ROLES.EMPLOYEE)!;
 
   for (const perm of permMap.values()) {
-    await RolePermission.findOrCreate({
-      where: { role_id: adminRole.id, permission_id: perm.id },
-      defaults: { role_id: adminRole.id, permission_id: perm.id },
-    });
+    await getOrCreate(
+      RolePermission,
+      { role_id: getId(adminRole), permission_id: getId(perm) },
+      { role_id: getId(adminRole), permission_id: getId(perm) }
+    );
   }
 
   const employeePerms = [
@@ -84,10 +107,11 @@ export const seedDefaultData = async (): Promise<void> => {
   for (const pName of employeePerms) {
     const perm = permMap.get(pName);
     if (perm) {
-      await RolePermission.findOrCreate({
-        where: { role_id: employeeRole.id, permission_id: perm.id },
-        defaults: { role_id: employeeRole.id, permission_id: perm.id },
-      });
+      await getOrCreate(
+        RolePermission,
+        { role_id: getId(employeeRole), permission_id: getId(perm) },
+        { role_id: getId(employeeRole), permission_id: getId(perm) }
+      );
     }
   }
 
@@ -124,22 +148,20 @@ export const seedDefaultData = async (): Promise<void> => {
   ];
   const deptMap = new Map<string, Department>();
   for (const d of deptSeeds) {
-    const [dept] = await Department.findOrCreate({
-      where: { name: d.name },
-      defaults: d,
-    });
+    const dept = await getOrCreate(Department, { name: d.name }, d);
     deptMap.set(d.name, dept);
     // Ensure a primary department Team exists for multiple Team Leads & Leave Rules
-    await Team.findOrCreate({
-      where: { code: `DEPT-${d.code}` },
-      defaults: {
+    await getOrCreate(
+      Team,
+      { code: `DEPT-${d.code}` },
+      {
         name: `${d.name} Team`,
         code: `DEPT-${d.code}`,
-        department_id: dept.id,
+        department_id: getId(dept),
         description: `Primary team for ${d.name}`,
         status: 'Active',
-      },
-    });
+      }
+    );
   }
 
   // 4. Seed Designations aligned exactly with Admin Frontend (DESIGNATIONS_BY_DEPARTMENT)
@@ -166,10 +188,11 @@ export const seedDefaultData = async (): Promise<void> => {
     const dept = deptMap.get(deptName);
     if (!dept) continue;
     for (const title of titles) {
-      const [desig] = await Designation.findOrCreate({
-        where: { title, department_id: dept.id },
-        defaults: { title, department_id: dept.id, status: 'Active' },
-      });
+      const desig = await getOrCreate(
+        Designation,
+        { title, department_id: getId(dept) },
+        { title, department_id: getId(dept), status: 'Active' }
+      );
       desigMap.set(title, desig);
     }
   }
@@ -203,7 +226,7 @@ export const seedDefaultData = async (): Promise<void> => {
   ];
   const leaveTypes: LeaveType[] = [];
   for (const lt of leaveTypeSeeds) {
-    const [record] = await LeaveType.findOrCreate({ where: { code: lt.code }, defaults: lt });
+    const record = await getOrCreate(LeaveType, { code: lt.code }, lt);
     leaveTypes.push(record);
   }
 
@@ -218,7 +241,7 @@ export const seedDefaultData = async (): Promise<void> => {
     { key: 'company_name', value: 'Godavari Wave Technologies Pvt. Ltd.', group: 'company', description: 'Official company name' },
   ];
   for (const s of settingSeeds) {
-    await Setting.findOrCreate({ where: { key: s.key }, defaults: s });
+    await getOrCreate(Setting, { key: s.key }, s);
   }
 
   // 7. Seed Default Admin Account ONLY if no existing admin account exists (never overwrites existing accounts!)
@@ -228,7 +251,7 @@ export const seedDefaultData = async (): Promise<void> => {
       [Op.or]: [
         { email: 'admin@godavariwaves.com' },
         { email: 'admin@godavariwave.com' },
-        { role_id: adminRole.id },
+        { role_id: getId(adminRole) },
       ],
     },
   });
@@ -238,20 +261,20 @@ export const seedDefaultData = async (): Promise<void> => {
     const adminUser = await User.create({
       email: adminEmail,
       password_hash: await hashPassword('Admin@123'),
-      role_id: adminRole.id,
+      role_id: getId(adminRole),
       dashboard_access: 'both',
       is_active: true,
     });
     await Employee.create({
-      user_id: adminUser.id,
+      user_id: getId(adminUser),
       employee_code: 'GW-ADM-001',
       first_name: 'Admin',
       last_name: 'User',
       full_name: 'Admin User',
       company_email: adminEmail,
       phone: '+91 98480 10001',
-      department_id: adminDept.id,
-      designation_id: desigMap.get('Administrator')?.id || null,
+      department_id: getId(adminDept),
+      designation_id: desigMap.get('Administrator') ? getId(desigMap.get('Administrator')) : null,
       joining_date: '2024-01-10',
       employment_type: 'Full-Time',
       employment_status: 'Active',
@@ -262,18 +285,19 @@ export const seedDefaultData = async (): Promise<void> => {
   // 8. Seed Default Team Leave Rules for department teams if none exist
   const swTeam = await Team.findOne({ where: { code: 'DEPT-SWD' } });
   if (swTeam) {
-    await TeamLeaveRule.findOrCreate({
-      where: { team_id: swTeam.id },
-      defaults: {
-        team_id: swTeam.id,
+    await getOrCreate(
+      TeamLeaveRule,
+      { team_id: getId(swTeam) },
+      {
+        team_id: getId(swTeam),
         max_concurrent_leaves: 1,
         min_workforce_percentage: 75,
         rule_scope: 'Team',
-        department_id: deptMap.get('Software Development')?.id || null,
+        department_id: deptMap.get('Software Development') ? getId(deptMap.get('Software Development')) : null,
         allow_admin_override: true,
         status: 'Active',
-      },
-    });
+      }
+    );
   }
 
   // 9. Seed Default Holidays (only if empty)
