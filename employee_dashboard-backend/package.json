@@ -8,7 +8,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "npx sequelize-cli db:migrate",
-    "seed": "npx sequelize-cli db:seed:all"
+    "seed": "npx sequelize-cli db:seed:all",
+    "db:test-connection": "ts-node --transpile-only scripts/test-aiven-connection.ts",
+    "verify": "ts-node --transpile-only scripts/verify-system.ts"
   },
   "keywords": [
     "ems",

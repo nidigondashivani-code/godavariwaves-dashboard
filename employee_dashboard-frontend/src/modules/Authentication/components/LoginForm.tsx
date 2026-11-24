@@ -1,7 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from 'lucide-react';
-import { authenticateDemoAdmin } from '../services/auth.service';
+import { useAuth } from '../../../context/AuthContext';
+import { extractApiError } from '../../../api/apiClient';
 
 interface LoginFormErrors {
   email: string;
@@ -31,6 +32,7 @@ function LoginForm() {
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const errors: LoginFormErrors = {
     email: touched.email || submitted ? validateEmail(email) : '',
@@ -48,13 +50,18 @@ function LoginForm() {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 450));
-      if (!authenticateDemoAdmin(email, password)) {
-        setAuthError('Invalid email or password. Check the demo credentials and try again.');
-        return;
-      }
+      const user = await login(email.trim(), password, rememberMe);
+      const isAdminUser =
+        (user.role === 'Admin' || user.role === 'HR') &&
+        (user.dashboardAccess === 'admin' || user.dashboardAccess === 'both');
 
-      navigate('/admin', { replace: true });
+      if (isAdminUser) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/employee/dashboard', { replace: true });
+      }
+    } catch (error) {
+      setAuthError(extractApiError(error, 'Invalid email or password. Please try again.'));
     } finally {
       setIsLoading(false);
     }

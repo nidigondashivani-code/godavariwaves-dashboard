@@ -20,6 +20,7 @@ import {
 import { employeeService } from '../../Employee/services/employee.service';
 import { Employee } from '../../Employee/types/employee.types';
 import notificationService from '../../Notifications/services/notification.service';
+import hrmsApi from '../../../services/hrmsApi.service';
 
 const DEPARTMENTS_STORAGE_KEY = 'ems_departments_v2';
 const DEPT_ACTIVITIES_KEY = 'ems_department_activities_v2';
@@ -432,6 +433,29 @@ class DepartmentService {
    */
   public getAnalyticsData() {
     return DEPARTMENT_ANALYTICS_DATA;
+  }
+
+  /**
+   * Shared Backend API Integration Methods (MySQL 8 via Express /api/v1/departments)
+   */
+  public async fetchDepartmentsFromApi() {
+    return hrmsApi.listDepartments();
+  }
+
+  public async assignTeamLeadOnBackend(departmentId: number, employeeId: number) {
+    return hrmsApi.assignTeamLead(departmentId, employeeId);
+  }
+
+  public async removeTeamLeadOnBackend(departmentId: number, employeeId: number) {
+    return hrmsApi.removeTeamLead(departmentId, employeeId);
+  }
+
+  public async fetchDesignationsFromApi(departmentId?: number) {
+    return hrmsApi.listDesignations(departmentId);
+  }
+
+  public async createDesignationOnBackend(payload: { title: string; department_id?: number | null }) {
+    return hrmsApi.createDesignation(payload);
   }
 }
 

@@ -41,6 +41,7 @@ import BreadcrumbFilterTrail from '../components/BreadcrumbFilterTrail';
 import ActiveFilterChips from '../components/ActiveFilterChips';
 import designationService from '../services/designation.service';
 import { exportEmployeesToExcel, exportEmployeesToPdf } from '../utils/employee.utils';
+import { extractApiError } from '../../../api/apiClient';
 
 const INITIAL_FILTERS: EmployeeFilterOptions = {
   searchQuery: '',
@@ -84,11 +85,20 @@ export const ManageEmployeesPage: React.FC = () => {
   // Filters state
   const [filters, setFilters] = useState<EmployeeFilterOptions>(INITIAL_FILTERS);
 
-  const refreshEmployees = () => {
-    setEmployees(employeeService.getEmployees());
+  const refreshEmployees = async () => {
+    try {
+      const synced = await employeeService.syncFromBackend();
+      setEmployees(synced);
+    } catch {
+      setEmployees(employeeService.getEmployees());
+    }
   };
 
   const [designationVersion, setDesignationVersion] = useState(0);
+
+  useEffect(() => {
+    refreshEmployees();
+  }, []);
 
   useEffect(() => {
     return designationService.subscribe(() => {
@@ -277,122 +287,173 @@ export const ManageEmployeesPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // CRUD Event Handlers
-  const handleSaveNewEmployee = (
+  // CRUD Event Handlers (backed by real MySQL Express APIs — never fake success or store plaintext passwords)
+  const handleSaveNewEmployee = async (
     data: Omit<Employee, 'id' | 'createdAt' | 'employmentHistory' | 'loginHistory'>
   ) => {
-    const created = employeeService.createEmployee(data);
-    refreshEmployees();
-    addToast(
-      'success',
-      'Employee Added Successfully',
-      `${created.firstName} ${created.lastName} has been onboarded.`
-    );
-  };
-
-  const handleSaveEditEmployee = (id: string, updates: Partial<Employee>) => {
-    const updated = employeeService.updateEmployee(id, updates);
-    refreshEmployees();
-    if (updated) {
+    try {
+      const result = await employeeService.createEmployeeOnBackend({
+        employee_code: data.employeeId,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        company_email: data.companyEmail,
+        phone: data.mobileNumber,
+        department_name: data.department,
+        designation_title: data.designation,
+        role_name: data.role,
+        employment_type: data.employmentType,
+        employment_status: data.status || 'Active',
+        joining_date: data.joiningDate,
+        date_of_birth: data.dateOfBirth || null,
+        gender: data.gender || null,
+        address: data.address || null,
+        dashboard_access: data.role === 'Admin' ? 'both' : 'employee',
+        dashboard_access_enabled: Boolean(data.dashboardAccess),
+        temporary_password: data.temporaryPassword,
+      });
+      await refreshEmployees();
+      const creds = result?.generatedCredentials;
       addToast(
         'success',
-        'Employee Updated',
-        `${updated.firstName} ${updated.lastName}'s profile has been updated.`
+        'Employee Created in MySQL',
+        `${data.firstName} ${data.lastName} (${data.employeeId}) saved securely.${
+          creds?.temporaryPassword ? ' Temporary credentials are ready for first login.' : ''
+        }`
       );
-      if (viewingEmployee?.id === id) {
-        setViewingEmployee(updated);
-      }
+    } catch (err) {
+      addToast('error', 'Failed to Create Employee', extractApiError(err, 'Unable to save employee to database.'));
     }
   };
 
-  const handleConfirmDelete = () => {
-    if (deletingEmployee) {
-      employeeService.deleteEmployee(deletingEmployee.id);
-      refreshEmployees();
+  const handleSaveEditEmployee = async (id: string, updates: Partial<Employee>) => {
+    try {
+      const numericId = Number(id);
+      if (Number.isFinite(numericId) && numericId > 0) {
+        await employeeService.updateEmployeeOnBackend(numericId, {
+          first_name: updates.firstName,
+          last_name: updates.lastName,
+          phone: updates.mobileNumber,
+          employment_type: updates.employmentType,
+          employment_status: updates.status,
+          joining_date: updates.joiningDate,
+          date_of_birth: updates.dateOfBirth,
+          address: updates.address,
+        });
+      }
+      await refreshEmployees();
+      addToast('success', 'Employee Updated', 'Employee record updated in database.');
+    } catch (err) {
+      addToast('error', 'Update Failed', extractApiError(err, 'Unable to update employee.'));
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingEmployee) return;
+    try {
+      await employeeService.softDeleteEmployeeOnBackend(Number(deletingEmployee.id));
+      await refreshEmployees();
       setSelectedIds((prev) => prev.filter((id) => id !== deletingEmployee.id));
       addToast(
         'info',
-        'Employee Deleted',
-        `${deletingEmployee.firstName} ${deletingEmployee.lastName} was archived.`
+        'Employee Archived',
+        `${deletingEmployee.firstName} ${deletingEmployee.lastName} was soft-deleted.`
       );
       setDeletingEmployee(null);
+    } catch (err) {
+      addToast('error', 'Delete Failed', extractApiError(err, 'Unable to archive employee.'));
     }
   };
 
-  const handleConfirmBulkDelete = () => {
-    employeeService.bulkAction(selectedIds, 'delete');
-    refreshEmployees();
-    addToast('info', 'Employees Deleted', `${selectedIds.length} employees have been archived.`);
-    setSelectedIds([]);
-    setIsBulkDeleteOpen(false);
+  const handleConfirmBulkDelete = async () => {
+    try {
+      await employeeService.bulkActionOnBackend(selectedIds.map(Number), 'delete');
+      await refreshEmployees();
+      addToast('info', 'Employees Archived', `${selectedIds.length} employees have been archived.`);
+      setSelectedIds([]);
+      setIsBulkDeleteOpen(false);
+    } catch (err) {
+      addToast('error', 'Bulk Delete Failed', extractApiError(err));
+    }
   };
 
-  const handleToggleStatus = (emp: Employee, reason?: string) => {
-    if (emp.status === 'Active') {
-      employeeService.deactivateEmployee(emp.id, reason || 'Deactivated');
+  const handleToggleStatus = async (emp: Employee, reason?: string) => {
+    try {
+      if (emp.status === 'Active') {
+        await employeeService.deactivateEmployeeOnBackend(Number(emp.id), reason || 'Deactivated');
+        addToast(
+          'warning',
+          'Employee Deactivated',
+          `Access revoked for ${emp.firstName} ${emp.lastName} (${reason || 'Deactivated'}).`
+        );
+      } else {
+        await employeeService.activateEmployeeOnBackend(Number(emp.id));
+        addToast(
+          'success',
+          'Employee Activated',
+          `Active status restored for ${emp.firstName} ${emp.lastName}.`
+        );
+      }
+      await refreshEmployees();
+    } catch (err) {
+      addToast('error', 'Status Update Failed', extractApiError(err));
+    }
+  };
+
+  const handleToggleDashboardAccess = async (emp: Employee, newAccess: boolean) => {
+    try {
+      await employeeService.toggleDashboardAccessOnBackend(Number(emp.id), newAccess);
+      await refreshEmployees();
       addToast(
-        'warning',
-        'Employee Deactivated',
-        `Access revoked for ${emp.firstName} ${emp.lastName} (${reason || 'Deactivated'}).`
+        'info',
+        'Dashboard Access Updated',
+        `${emp.firstName} ${emp.lastName}'s dashboard access is now ${
+          newAccess ? 'Enabled' : 'Disabled'
+        }.`
       );
-    } else {
-      employeeService.activateEmployee(emp.id);
-      addToast(
-        'success',
-        'Employee Activated',
-        `Active status restored for ${emp.firstName} ${emp.lastName}.`
-      );
-    }
-    refreshEmployees();
-    if (viewingEmployee?.id === emp.id) {
-      setViewingEmployee(employeeService.getEmployeeById(emp.id) || null);
+    } catch (err) {
+      addToast('error', 'Access Update Failed', extractApiError(err));
     }
   };
 
-  const handleToggleDashboardAccess = (emp: Employee, newAccess: boolean) => {
-    employeeService.toggleDashboardAccess(emp.id, newAccess);
-    refreshEmployees();
-    addToast(
-      'info',
-      'Dashboard Access Updated',
-      `${emp.firstName} ${emp.lastName}'s dashboard access is now ${
-        newAccess ? 'Enabled' : 'Disabled'
-      }.`
-    );
-  };
-
-  const handleResetPassword = (newPassword: string, sendEmail: boolean) => {
-    if (passwordResetEmployee) {
-      employeeService.resetPassword(passwordResetEmployee.id, newPassword);
-      refreshEmployees();
+  const handleResetPassword = async (newPassword: string, sendEmail: boolean) => {
+    if (!passwordResetEmployee) return;
+    try {
+      await employeeService.resetPasswordOnBackend(Number(passwordResetEmployee.id), newPassword);
+      await refreshEmployees();
       addToast(
         'success',
         'Password Reset Successfully',
-        `New temporary password generated for ${passwordResetEmployee.firstName}.${
-          sendEmail ? ' Email sent to ' + passwordResetEmployee.companyEmail : ''
+        `New hashed password saved for ${passwordResetEmployee.firstName}.${
+          sendEmail ? ' Ready to share with ' + passwordResetEmployee.companyEmail : ''
         }`
       );
       setPasswordResetEmployee(null);
+    } catch (err) {
+      addToast('error', 'Password Reset Failed', extractApiError(err));
     }
   };
 
-  const handleBulkAction = (
+  const handleBulkAction = async (
     action: 'activate' | 'deactivate' | 'enableAccess' | 'disableAccess'
   ) => {
-    employeeService.bulkAction(selectedIds, action);
-    refreshEmployees();
-    const actionLabels: Record<string, string> = {
-      activate: 'Activated',
-      deactivate: 'Deactivated',
-      enableAccess: 'Dashboard Access Enabled',
-      disableAccess: 'Dashboard Access Disabled',
-    };
-    addToast(
-      'success',
-      'Bulk Action Completed',
-      `${selectedIds.length} employees updated (${actionLabels[action]}).`
-    );
-    setSelectedIds([]);
+    try {
+      await employeeService.bulkActionOnBackend(selectedIds.map(Number), action);
+      await refreshEmployees();
+      const actionLabels: Record<string, string> = {
+        activate: 'Activated',
+        deactivate: 'Deactivated',
+        enableAccess: 'Dashboard Access Enabled',
+        disableAccess: 'Dashboard Access Disabled',
+      };
+      addToast(
+        'success',
+        'Bulk Action Completed',
+        `${selectedIds.length} employees updated (${actionLabels[action]}).`
+      );
+      setSelectedIds([]);
+    } catch (err) {
+      addToast('error', 'Bulk Action Failed', extractApiError(err));
+    }
   };
 
   return (

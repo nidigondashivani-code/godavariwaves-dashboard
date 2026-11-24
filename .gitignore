@@ -8,11 +8,16 @@ dist/
 build/
 */build/
 
-# Local Environment Variables
+# Local Environment Variables & SSL Certificates
 .env
 */.env
 .env.local
 .env.*.local
+*.pem
+*.crt
+*.key
+certs/
+*/certs/
 
 # Logs
 logs/

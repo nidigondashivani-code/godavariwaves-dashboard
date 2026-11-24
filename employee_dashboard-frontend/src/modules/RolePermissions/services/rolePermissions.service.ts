@@ -23,6 +23,7 @@ import {
 import { employeeService } from '../../Employee/services/employee.service';
 import { Employee } from '../../Employee/types/employee.types';
 import notificationService from '../../Notifications/services/notification.service';
+import hrmsApi from '../../../services/hrmsApi.service';
 
 const ROLES_STORAGE_KEY = 'ems_roles_v1';
 const ACTIVITY_STORAGE_KEY = 'ems_role_activities_v1';
@@ -296,6 +297,26 @@ class RolePermissionsService {
       adminEmployeesCount: adminEmployees,
       regularEmployeesCount: regularEmployees,
     };
+  }
+
+  /**
+   * Shared Backend API Integration Methods (MySQL 8 via Express /api/v1/roles)
+   */
+  public async fetchRolesFromApi() {
+    return hrmsApi.listRoles();
+  }
+
+  public async updatePermissionsOnBackend(
+    roleId: number,
+    permissionMatrix: RolePermissionsMap
+  ) {
+    return hrmsApi.updateRolePermissions(roleId, {
+      permissionMatrix: permissionMatrix as unknown as Record<string, Record<string, boolean>>,
+    });
+  }
+
+  public async fetchAuditLogsFromApi() {
+    return hrmsApi.getRoleAuditLogs();
   }
 }
 

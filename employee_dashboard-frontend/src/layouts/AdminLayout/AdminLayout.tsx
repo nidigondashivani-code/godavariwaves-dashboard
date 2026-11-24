@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { clearDemoAdminSession } from '../../modules/Authentication/services/auth.service';
+import { useAuth } from '../../context/AuthContext';
 import AdminHeader from './AdminHeader';
 import AdminSidebar from './AdminSidebar';
 
@@ -36,9 +37,11 @@ function AdminLayout({ children }: AdminLayoutProps) {
               ? 'Profile & Settings'
               : dashboardNavigation;
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    clearDemoAdminSession();
+  const handleLogout = async () => {
+    await logout();
+    await clearDemoAdminSession();
     navigate('/login', { replace: true });
   };
 
