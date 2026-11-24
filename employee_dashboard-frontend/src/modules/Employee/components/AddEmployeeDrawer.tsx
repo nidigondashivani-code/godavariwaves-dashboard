@@ -64,7 +64,8 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
   // Credentials
   const [companyEmail, setCompanyEmail] = useState('');
   const [isEmailCustomized, setIsEmailCustomized] = useState(false);
-  const [password, setPassword] = useState(() => generateTemporaryPassword(10));
+  const [passwordMode, setPasswordMode] = useState<'manual' | 'auto'>('manual');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(true);
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [role, setRole] = useState<RoleType>('Employee');
@@ -102,7 +103,8 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
       setJoiningDate(new Date().toISOString().split('T')[0]);
       setCompanyEmail('');
       setIsEmailCustomized(false);
-      setPassword(generateTemporaryPassword(10));
+      setPasswordMode('manual');
+      setPassword('');
       setRole('Employee');
       setDashboardAccess(true);
     }
@@ -175,6 +177,10 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim() || !companyEmail.trim()) {
       alert('Please fill in required fields: First Name, Last Name, and Company Email.');
+      return;
+    }
+    if (!password.trim() || password.trim().length < 6) {
+      alert('Please enter or generate a password (minimum 6 characters) for this employee.');
       return;
     }
 
@@ -515,17 +521,56 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
               </p>
             </div>
 
-            {/* Auto-generated Temporary Password */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-              <label className="block text-xs font-semibold text-slate-700">
-                Temporary Password (8–12 chars, upper, lower, number, special char)
-              </label>
+            {/* Password Credentials Configuration (Manual Entry with Optional Auto-Generate) */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    Login Password Credentials
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {passwordMode === 'manual'
+                      ? 'Enter custom password manually below, or toggle auto-generate.'
+                      : 'Auto-generated secure password. You can customize or regenerate it.'}
+                  </p>
+                </div>
+                <div className="flex items-center rounded-lg bg-slate-200/80 p-0.5 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setPasswordMode('manual')}
+                    className={`px-3 py-1 rounded-md transition ${
+                      passwordMode === 'manual'
+                        ? 'bg-white text-blue-700 shadow-sm font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Manual Entry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPasswordMode('auto');
+                      setPassword(generateTemporaryPassword(10));
+                    }}
+                    className={`px-3 py-1 rounded-md transition flex items-center gap-1 ${
+                      passwordMode === 'auto'
+                        ? 'bg-white text-blue-700 shadow-sm font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" /> Auto-Generate
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  readOnly
+                  required
                   value={password}
-                  className="w-full bg-white px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono tracking-wider text-slate-900 focus:outline-none"
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter employee password manually (min 6 characters)..."
+                  className="w-full bg-white px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
                 <button
                   type="button"
@@ -547,13 +592,25 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
                 </button>
               </div>
 
-              <div className="flex justify-end pt-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                <span>
+                  {password.length === 0 ? (
+                    <span className="text-slate-400">Type a custom password or click auto-generate</span>
+                  ) : password.length < 6 ? (
+                    <span className="text-amber-600 font-medium">⚠️ Minimum 6 characters required</span>
+                  ) : (
+                    <span className="text-emerald-600 font-medium">✓ Valid password length ({password.length} chars)</span>
+                  )}
+                </span>
                 <button
                   type="button"
-                  onClick={() => setPassword(generateTemporaryPassword(10))}
+                  onClick={() => {
+                    setPassword(generateTemporaryPassword(10));
+                    setPasswordMode('auto');
+                  }}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" /> Generate Again
+                  <RefreshCw className="w-3.5 h-3.5" /> Generate Random Password
                 </button>
               </div>
             </div>

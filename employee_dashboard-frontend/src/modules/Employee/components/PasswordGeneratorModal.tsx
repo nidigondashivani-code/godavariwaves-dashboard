@@ -34,7 +34,11 @@ export const PasswordGeneratorModal: React.FC<PasswordGeneratorModalProps> = ({
   };
 
   const handleSave = (sendEmail: boolean) => {
-    onPasswordReset(password, sendEmail);
+    if (!password.trim() || password.trim().length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+    onPasswordReset(password.trim(), sendEmail);
     onClose();
   };
 
@@ -63,15 +67,19 @@ export const PasswordGeneratorModal: React.FC<PasswordGeneratorModalProps> = ({
 
         <div className="py-4 space-y-4">
           <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-              Generated Temporary Password
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-slate-700 uppercase tracking-wider">
+                Password Credentials
+              </label>
+              <span className="text-[10px] text-blue-700 font-medium">Editable or Auto-generate</span>
+            </div>
             <div className="flex items-center gap-2">
               <input
                 type={showPassword ? 'text' : 'password'}
-                readOnly
                 value={password}
-                className="w-full bg-white px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm tracking-wider text-slate-900 focus:outline-none"
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password manually (min 6 chars)..."
+                className="w-full bg-white px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
               <button
                 type="button"
