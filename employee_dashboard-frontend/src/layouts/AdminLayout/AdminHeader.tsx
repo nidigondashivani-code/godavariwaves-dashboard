@@ -5,7 +5,6 @@ import {
   Menu,
   Search,
   ShieldCheck,
-  UserRound,
   Check,
   X,
   UsersRound,
@@ -65,7 +64,6 @@ const dashboardSearchResults: DashboardSearchResult[] = [
   { label: 'Employees On Leave', icon: CalendarOff, activeNavigation: 'Attendance', sectionId: 'module-employees-on-leave' },
   { label: 'Pending Leave Requests', icon: ClipboardList, activeNavigation: 'Leave Requests', sectionId: 'module-pending-leave-requests' },
   { label: 'Pending Task Updates', icon: ListTodo, activeNavigation: 'Task Updates' },
-  { label: 'Upcoming Birthdays', icon: UserRound, activeNavigation: 'Dashboard Overview', sectionId: 'upcoming-birthdays' },
 ];
 
 const formatNotificationTime = (timestamp: string): string => {

@@ -10,11 +10,10 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import AdminLayout from '../../../layouts/AdminLayout/AdminLayout';
 import StatCard, { type StatCardTone } from '../components/StatCard';
-import UpcomingBirthdays from '../components/UpcomingBirthdays';
 import { getAdminDashboardData } from '../services/dashboard.service';
 
 function AdminDashboardPage() {
-  const { metrics: dashboardMetrics, upcomingBirthdays } = getAdminDashboardData();
+  const { metrics: dashboardMetrics } = getAdminDashboardData();
   const workforceCards: {
     title: string;
     value: number;
@@ -132,8 +131,6 @@ function AdminDashboardPage() {
             {pendingRequestCards.map((card) => <StatCard {...card} key={card.title} />)}
           </div>
         </section>
-
-        <UpcomingBirthdays birthdays={upcomingBirthdays} />
       </div>
     </AdminLayout>
   );
