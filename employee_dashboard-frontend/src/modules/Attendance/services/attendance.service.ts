@@ -9,6 +9,7 @@ import {
   AttendanceStatus,
 } from '../types/attendance.types';
 import { OFFICE_POLICY } from '../constants/attendance.constants';
+import { apiClient } from '../../../api/apiClient';
 
 const RECORDS_STORAGE_KEY = 'ems_admin_attendance_records_v1';
 const CORRECTIONS_STORAGE_KEY = 'ems_attendance_correction_requests_v1';
@@ -89,6 +90,46 @@ class AttendanceService {
 
   private notifyListeners(): void {
     this.listeners.forEach((listener) => listener());
+  }
+
+  /**
+   * Sync attendance records from live backend MySQL database (via Express /api/v1/attendance/admin/all)
+   */
+  public async syncFromBackend(date?: string): Promise<void> {
+    try {
+      const params: Record<string, string> = {};
+      if (date) params.date = date;
+      const res = await apiClient.get('/attendance/admin/all', { params });
+      const records = res.data?.data?.records;
+      if (Array.isArray(records)) {
+        const mappedRecords: AttendanceRecord[] = records.map((r: any) => {
+          return {
+            id: String(r.id),
+            employeeKey: String(r.employee_id),
+            date: r.date,
+            loginTime: r.clock_in
+              ? new Date(r.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+              : null,
+            logoutTime: r.clock_out
+              ? new Date(r.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+              : null,
+            status: (r.status === 'Half-Day' ? 'Half Day' : r.status) as AttendanceStatus,
+            lateMinutes: Number(r.late_minutes || 0),
+            workingMinutes: Math.round(Number(r.working_hours || 0) * 60),
+            updatedAt: r.updatedAt || new Date().toISOString(),
+          };
+        });
+
+        const currentRecords = this.readArray<AttendanceRecord>(RECORDS_STORAGE_KEY);
+        const filteredCurrent = currentRecords.filter(
+          (cr) => !mappedRecords.some((mr) => mr.employeeKey === cr.employeeKey && mr.date === cr.date)
+        );
+        this.writeArray(RECORDS_STORAGE_KEY, [...mappedRecords, ...filteredCurrent]);
+        this.notifyListeners();
+      }
+    } catch (err) {
+      console.warn('Backend attendance sync error:', err);
+    }
   }
 
   public getCorrectionRequests(): AttendanceCorrectionRequest[] {

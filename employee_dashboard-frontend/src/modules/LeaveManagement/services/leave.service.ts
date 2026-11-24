@@ -14,6 +14,7 @@ import {
 import { getTodayString } from '../constants/leave.constants';
 import notificationService from '../../Notifications/services/notification.service';
 import { rolePermissionsService } from '../../RolePermissions/services/rolePermissions.service';
+import { apiClient } from '../../../api/apiClient';
 
 const LEAVE_STORAGE_KEY = 'ems_admin_leave_requests_v1';
 const BALANCE_STORAGE_KEY = 'ems_admin_leave_balances_v1';
@@ -114,6 +115,46 @@ class LeaveService {
         console.error('Error notifying leave listener', err);
       }
     });
+  }
+
+  /**
+   * Sync leave requests from live backend API (MySQL 8 via Express /api/v1/leaves/admin/all)
+   */
+  public async syncFromBackend(): Promise<LeaveRequest[]> {
+    try {
+      const res = await apiClient.get('/leaves/admin/all');
+      const rows = res.data?.data;
+      if (Array.isArray(rows)) {
+        const backendRequests: LeaveRequest[] = rows.map((item: any) => ({
+          id: String(item.id),
+          employeeId: item.employee?.employee_code || `EMP-${item.employee_id}`,
+          employeeName: item.employee?.full_name || 'Employee',
+          department: item.employee?.department?.name || 'Software Development',
+          designation: 'Software Engineer',
+          companyEmail: item.employee?.company_email || 'employee@godavariwave.com',
+          mobileNumber: item.employee?.phone || '--',
+          leaveType: (item.leaveType?.name === 'Sick Leave' || item.leaveType?.name === 'Emergency Leave' ? item.leaveType.name : 'Casual Leave') as any,
+          startDate: item.start_date,
+          endDate: item.end_date,
+          totalDays: Number(item.total_days || 1),
+          reason: item.reason || '',
+          appliedDate: item.createdAt ? item.createdAt.substring(0, 10) : getTodayString(),
+          status: item.status,
+          rejectionReason: item.rejection_reason || undefined,
+        }));
+
+        // Keep local requests that aren't on backend
+        const localOnly = this.requests.filter(
+          (r) => !backendRequests.some((b) => b.id === r.id) && !LEGACY_SEEDED_REQUEST_IDS.has(r.id)
+        );
+        this.requests = [...backendRequests, ...localOnly];
+        this.saveRequests();
+        return this.getLeaveRequests();
+      }
+    } catch (err) {
+      console.warn('Failed to sync leaves from backend:', err);
+    }
+    return this.getLeaveRequests();
   }
 
   /**
@@ -269,6 +310,14 @@ class LeaveService {
     this.requests[index] = updatedRequest;
     this.saveRequests();
 
+    // Call backend API if request originates from MySQL
+    const numericId = Number(id);
+    if (!Number.isNaN(numericId) && numericId > 0) {
+      void apiClient.patch(`/leaves/${numericId}/approve`).catch((err) => {
+        console.warn('Backend approve sync failed:', err);
+      });
+    }
+
     // Automatically update leave balance
     this.deductLeaveBalance(req.employeeId, req.leaveType, req.totalDays, req.startDate, adminName, req.reason);
 
@@ -338,6 +387,14 @@ class LeaveService {
 
     this.requests[index] = updatedRequest;
     this.saveRequests();
+
+    // Call backend API if request originates from MySQL
+    const numericId = Number(id);
+    if (!Number.isNaN(numericId) && numericId > 0) {
+      void apiClient.patch(`/leaves/${numericId}/reject`, { rejection_reason: reason.trim() }).catch((err) => {
+        console.warn('Backend reject sync failed:', err);
+      });
+    }
 
     // Record in Audit Log
     try {

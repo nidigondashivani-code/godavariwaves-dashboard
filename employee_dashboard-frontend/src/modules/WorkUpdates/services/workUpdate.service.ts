@@ -3,6 +3,7 @@ import type { Employee } from '../../Employee/types/employee.types';
 import attendanceService from '../../Attendance/services/attendance.service';
 import leaveService from '../../LeaveManagement/services/leave.service';
 import notificationService from '../../Notifications/services/notification.service';
+import { apiClient } from '../../../api/apiClient';
 import type {
   DailyWorkUpdate,
   WorkUpdateAdminRemark,
@@ -78,6 +79,70 @@ class WorkUpdateService {
 
   private notifyListeners(): void {
     this.listeners.forEach((listener) => listener());
+  }
+
+  /**
+   * Sync work updates from live backend MySQL database (via Express /api/v1/work-updates/admin/all)
+   */
+  public async syncFromBackend(date?: string): Promise<DailyWorkUpdate[]> {
+    try {
+      const params: Record<string, string> = {};
+      if (date) params.workDate = date;
+      const res = await apiClient.get('/work-updates/admin/all', { params });
+      const rows = res.data?.data;
+      if (Array.isArray(rows)) {
+        const updates: DailyWorkUpdate[] = rows.map((r: any) => {
+          const emp = r.employee || {};
+          const nameParts = (emp.full_name || 'Employee').split(' ');
+          const firstName = nameParts[0] || 'Employee';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          const dept = emp.department?.name || 'Software Development';
+
+          return {
+            id: String(r.id),
+            employeeKey: String(r.employee_id),
+            employee: {
+              id: String(r.employee_id),
+              employeeId: emp.employee_code || `EMP-${r.employee_id}`,
+              firstName,
+              lastName,
+              department: dept,
+              designation: 'Software Engineer',
+              companyEmail: emp.company_email || '',
+              photoUrl: undefined,
+            },
+            date: r.work_date,
+            workSummary: r.work_description || '',
+            progressPercentage: Number(r.progress || 0),
+            remainingWork: r.tasks_completed || '',
+            challenges: '',
+            comments: '',
+            submittedAt: r.createdAt || new Date().toISOString(),
+            logoutTime: null,
+            status: (r.status || (Number(r.progress || 0) === 100 ? 'Completed' : 'Submitted')) as WorkUpdateStatus,
+            adminRemarks: r.admin_feedback
+              ? [
+                  {
+                    id: `remark-db-${r.id}`,
+                    text: r.admin_feedback,
+                    addedBy: 'Admin',
+                    addedAt: r.updatedAt || r.createdAt,
+                  },
+                ]
+              : undefined,
+          };
+        });
+
+        const currentUpdates = this.readArray<DailyWorkUpdate>(UPDATES_KEY);
+        const filteredCurrent = currentUpdates.filter((cu) => !updates.some((u) => u.id === cu.id));
+        this.writeArray(UPDATES_KEY, [...updates, ...filteredCurrent]);
+        this.notifyListeners();
+        return this.getUpdates();
+      }
+    } catch (err) {
+      console.warn('Backend work updates sync error:', err);
+    }
+    return this.getUpdates();
   }
 
   public subscribe(listener: () => void): () => void {
@@ -335,6 +400,19 @@ class WorkUpdateService {
     };
     update.adminRemarks = [...(update.adminRemarks ?? []), newRemark];
     this.writeArray(UPDATES_KEY, updates);
+
+    // Call backend API if record is numeric ID from MySQL
+    const numericId = Number(updateId);
+    if (!Number.isNaN(numericId) && numericId > 0) {
+      void apiClient
+        .patch(`/work-updates/${numericId}/review`, {
+          status: 'Approved',
+          admin_feedback: cleanRemark,
+        })
+        .catch((err) => {
+          console.warn('Backend work update review sync failed:', err);
+        });
+    }
     this.recordAudit({
       employeeKey: update.employeeKey,
       employeeId: update.employee.employeeId,

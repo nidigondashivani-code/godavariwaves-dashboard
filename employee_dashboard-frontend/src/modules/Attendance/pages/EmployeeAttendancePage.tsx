@@ -4,9 +4,6 @@ import {
   LogIn,
   LogOut,
   Download,
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { apiClient, extractApiError } from '../../../api/apiClient';
 import { useToast } from '../../../providers/ToastProvider';
@@ -107,23 +104,8 @@ export const EmployeeAttendancePage: React.FC = () => {
     }
   };
 
-  const changeMonth = (delta: number) => {
-    const d = new Date(year, month - 1 + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth() + 1);
-  };
-
   const formatTime = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-
-  // Build calendar grid for current month
-  const firstWeekday = new Date(year, month - 1, 1).getDay();
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const recordByDate = new Map(monthlyRecords.map((r) => [r.date, r]));
-  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
 
   if (loading) return <LoadingSpinner label="Loading attendance records..." />;
 
@@ -133,7 +115,7 @@ export const EmployeeAttendancePage: React.FC = () => {
         <div>
           <h1 className="text-[28px] sm:text-[32px] font-bold text-[#111827]">Attendance</h1>
           <p className="text-[14px] text-[#6B7280]">
-            Track daily clock-in/out times, monthly attendance calendar, and working hours.
+            Track daily clock-in/out times, working hours, and attendance history.
           </p>
         </div>
         <Button variant="secondary" onClick={handleExport}>
@@ -213,78 +195,6 @@ export const EmployeeAttendancePage: React.FC = () => {
           </Card>
         ))}
       </div>
-
-      {/* Monthly Attendance Calendar */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[18px] font-semibold text-[#111827] flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-[#2563EB]" /> Monthly Attendance Calendar
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => changeMonth(-1)}
-              className="p-2 rounded-[10px] border border-[#E5E7EB] hover:bg-[#F8FAFC]"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-[14px] font-semibold text-[#111827] min-w-[140px] text-center">
-              {monthLabel}
-            </span>
-            <button
-              onClick={() => changeMonth(1)}
-              className="p-2 rounded-[10px] border border-[#E5E7EB] hover:bg-[#F8FAFC]"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-2 text-center mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-            <div key={d} className="text-[12px] font-semibold text-[#6B7280] py-1">
-              {d}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-2">
-          {Array.from({ length: firstWeekday }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-20 rounded-[12px] bg-[#F8FAFC]" />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, idx) => {
-            const day = idx + 1;
-            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const rec = recordByDate.get(dateStr);
-            const cellStyle = rec
-              ? rec.status === 'Present'
-                ? 'bg-[#ECFDF5] border-[#A7F3D0]'
-                : rec.status === 'Late'
-                ? 'bg-[#FFF7ED] border-[#FDE68A]'
-                : rec.status === 'On Leave'
-                ? 'bg-[#E0F2FE] border-[#BAE6FD]'
-                : rec.status === 'Absent'
-                ? 'bg-[#FEF2F2] border-[#FECACA]'
-                : 'bg-[#F8FAFC] border-[#E5E7EB]'
-              : 'bg-white border-[#F1F5F9]';
-
-            return (
-              <div
-                key={dateStr}
-                className={`h-20 p-2 rounded-[12px] border flex flex-col justify-between text-left ${cellStyle}`}
-              >
-                <span className="text-[13px] font-bold text-[#111827]">{day}</span>
-                {rec && (
-                  <div>
-                    <p className="text-[11px] font-semibold truncate text-[#374151]">{rec.status}</p>
-                    <p className="text-[10px] text-[#6B7280]">
-                      {Number(rec.working_hours || 0).toFixed(1)}h
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Card>
 
       {/* Attendance History Table */}
       <Card className="overflow-hidden">

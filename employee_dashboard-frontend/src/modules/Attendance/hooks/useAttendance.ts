@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { OFFICE_POLICY } from '../constants/attendance.constants';
 import { attendanceService } from '../services/attendance.service';
+import employeeService from '../../Employee/services/employee.service';
+import leaveService from '../../LeaveManagement/services/leave.service';
 import { AttendanceCorrectionRequest, AttendanceRow } from '../types/attendance.types';
 
 export const useAttendance = (date: string) => {
@@ -13,15 +15,23 @@ export const useAttendance = (date: string) => {
   }, [date]);
 
   useEffect(() => {
+    // Initial sync from backend MySQL database
+    void employeeService.syncFromBackend().catch(() => {});
+    void leaveService.syncFromBackend().catch(() => {});
+    void attendanceService.syncFromBackend(date).catch(() => {});
+
     refresh();
     const unsubscribe = attendanceService.subscribe(refresh);
-    const timer = window.setInterval(refresh, OFFICE_POLICY.liveRefreshMilliseconds);
+    const timer = window.setInterval(() => {
+      void attendanceService.syncFromBackend(date).catch(() => {});
+      refresh();
+    }, OFFICE_POLICY.liveRefreshMilliseconds);
 
     return () => {
       unsubscribe();
       window.clearInterval(timer);
     };
-  }, [refresh]);
+  }, [date, refresh]);
 
   return {
     rows,

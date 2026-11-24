@@ -21,6 +21,7 @@ import WorkUpdateDetailsDrawer from '../components/WorkUpdateDetailsDrawer';
 import WorkUpdateSummaryCard from '../components/WorkUpdateSummaryCard';
 import WorkUpdateTable from '../components/WorkUpdateTable';
 import { workUpdateService } from '../services/workUpdate.service';
+import employeeService from '../../Employee/services/employee.service';
 import type {
   WorkUpdateFilter,
   WorkUpdateReportType,
@@ -146,16 +147,21 @@ function AdminWorkUpdatesPage() {
 
   useEffect(() => {
     setLoading(true);
+    void employeeService.syncFromBackend().catch(() => {});
+    void workUpdateService.syncFromBackend(selectedDate).catch(() => {});
     refreshData();
     const unsubscribe = workUpdateService.subscribe(refreshData);
-    const refreshTimer = window.setInterval(refreshData, 15000);
+    const refreshTimer = window.setInterval(() => {
+      void workUpdateService.syncFromBackend(selectedDate).catch(() => {});
+      refreshData();
+    }, 15000);
     window.addEventListener('storage', refreshData);
     return () => {
       unsubscribe();
       window.clearInterval(refreshTimer);
       window.removeEventListener('storage', refreshData);
     };
-  }, [refreshData]);
+  }, [refreshData, selectedDate]);
 
   useEffect(() => setPage(1), [activeCardFilter, filters, searchQuery, selectedDate, dateRangeMode]);
 

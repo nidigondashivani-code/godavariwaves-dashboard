@@ -87,13 +87,34 @@ export const AdminLeaveManagementPage: React.FC = () => {
     }, 4500);
   };
 
-  // Subscribe to service updates
+  // Subscribe to service updates & sync with backend MySQL
   useEffect(() => {
+    let mounted = true;
+    const fetchSync = async () => {
+      try {
+        const synced = await leaveService.syncFromBackend();
+        if (mounted) {
+          setRequests(synced);
+          setMetrics(leaveService.getMetrics());
+        }
+      } catch {
+        // Fallback to local
+      }
+    };
+
+    fetchSync();
+    const interval = setInterval(fetchSync, 15000);
+
     const unsubscribe = leaveService.subscribe((updatedRequests) => {
       setRequests(updatedRequests);
       setMetrics(leaveService.getMetrics());
     });
-    return () => unsubscribe();
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, []);
 
   // Filter logic
@@ -205,6 +226,7 @@ export const AdminLeaveManagementPage: React.FC = () => {
       );
       setApproveModalOpen(false);
       setRequestToApprove(null);
+      void leaveService.syncFromBackend();
       // Close drawer if open on this request
       if (selectedRequest?.id === requestToApprove.id) {
         setDetailsDrawerOpen(false);
@@ -234,6 +256,7 @@ export const AdminLeaveManagementPage: React.FC = () => {
       addToast('info', `Leave request for ${requestToReject.employeeName} rejected.`);
       setRejectModalOpen(false);
       setRequestToReject(null);
+      void leaveService.syncFromBackend();
       if (selectedRequest?.id === requestToReject.id) {
         setDetailsDrawerOpen(false);
       }

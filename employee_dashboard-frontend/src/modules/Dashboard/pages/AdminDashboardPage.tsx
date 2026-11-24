@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   UsersRound,
   UserCheck,
@@ -8,12 +9,46 @@ import {
   ListTodo,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { apiClient } from '../../../api/apiClient';
 import AdminLayout from '../../../layouts/AdminLayout/AdminLayout';
 import StatCard, { type StatCardTone } from '../components/StatCard';
 import { getAdminDashboardData } from '../services/dashboard.service';
+import type { DashboardMetrics } from '../types/dashboard.types';
 
 function AdminDashboardPage() {
-  const { metrics: dashboardMetrics } = getAdminDashboardData();
+  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics>(
+    () => getAdminDashboardData().metrics
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchLiveMetrics = async () => {
+      try {
+        const res = await apiClient.get('/employees/dashboard/admin');
+        const stats = res.data?.data?.stats;
+        if (mounted && stats) {
+          setDashboardMetrics({
+            totalEmployees: Number(stats.totalEmployees || 0),
+            presentToday: Number(stats.presentToday || 0),
+            absentToday: Number(stats.absentToday || 0),
+            lateEmployees: Number(stats.lateToday || 0),
+            employeesOnLeave: Number(stats.employeesOnLeave || 0),
+            pendingLeaveRequests: Number(stats.pendingLeaves || 0),
+            pendingTaskUpdates: Number(stats.pendingWorkUpdates || 0),
+          });
+        }
+      } catch {
+        // Silent fallback to local metrics
+      }
+    };
+
+    fetchLiveMetrics();
+    const interval = setInterval(fetchLiveMetrics, 15000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
   const workforceCards: {
     title: string;
     value: number;
