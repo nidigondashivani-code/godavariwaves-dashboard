@@ -62,6 +62,7 @@ export interface WorkUpdateAuditEntry {
 
 export type WorkUpdateFilter =
   | 'all'
+  | 'employees'
   | 'updates'
   | 'pending'
   | 'logged-out'

@@ -53,8 +53,7 @@ const dashboardSearchResults: DashboardSearchResult[] = [
     ...(label === 'Employee Management' || label === 'Attendance' ? { sectionId: 'workforce-overview' } : {}),
     ...(label === 'Leave Requests' ||
     label === 'Attendance Corrections' ||
-    label === 'Profile Requests' ||
-    label === 'Task Updates'
+    label === 'Profile Requests'
       ? { sectionId: 'pending-requests' }
       : {}),
     ...(label === 'Announcements' ? { sectionId: 'announcements' } : {}),
@@ -67,7 +66,7 @@ const dashboardSearchResults: DashboardSearchResult[] = [
   { label: 'Pending Leave Requests', icon: ClipboardList, activeNavigation: 'Leave Requests', sectionId: 'module-pending-leave-requests' },
   { label: 'Pending Attendance Corrections', icon: CalendarClock, activeNavigation: 'Attendance Corrections', sectionId: 'module-pending-attendance-corrections' },
   { label: 'Pending Profile Requests', icon: ContactRound, activeNavigation: 'Profile Requests', sectionId: 'module-pending-profile-requests' },
-  { label: 'Pending Task Updates', icon: ListTodo, activeNavigation: 'Task Updates', sectionId: 'module-pending-task-updates' },
+  { label: 'Pending Task Updates', icon: ListTodo, activeNavigation: 'Task Updates' },
   { label: 'Company Calendar', icon: CalendarDays, activeNavigation: 'Calendar' },
   { label: 'Upcoming Events', icon: CalendarDays, activeNavigation: 'Calendar' },
   { label: "Today's Holidays", icon: CalendarDays, activeNavigation: 'Dashboard Overview', sectionId: 'todays-holidays' },

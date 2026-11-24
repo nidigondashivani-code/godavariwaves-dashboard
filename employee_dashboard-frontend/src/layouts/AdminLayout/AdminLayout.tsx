@@ -22,11 +22,13 @@ function AdminLayout({ children }: AdminLayoutProps) {
     }
   }, [location.pathname, locationState?.activeNavigation]);
 
-  const activeNavigation = location.pathname === '/admin/calendar'
-    ? 'Calendar'
-    : location.pathname === '/admin/profile'
-      ? 'Profile & Settings'
-      : dashboardNavigation;
+  const activeNavigation = location.pathname === '/admin/work-updates'
+    ? 'Task Updates'
+    : location.pathname === '/admin/calendar'
+      ? 'Calendar'
+      : location.pathname === '/admin/profile'
+        ? 'Profile & Settings'
+        : dashboardNavigation;
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -47,6 +49,11 @@ function AdminLayout({ children }: AdminLayoutProps) {
 
     if (label === 'Leave Requests') {
       navigate('/leaves');
+      return;
+    }
+
+    if (label === 'Task Updates') {
+      navigate('/admin/work-updates');
       return;
     }
 
@@ -83,7 +90,6 @@ function AdminLayout({ children }: AdminLayoutProps) {
       'Leave Requests': 'pending-requests',
       'Attendance Corrections': 'pending-requests',
       'Profile Requests': 'pending-requests',
-      'Task Updates': 'pending-requests',
       'Announcements': 'announcements',
     };
     const sectionId = navSectionMap[label];
