@@ -8,14 +8,11 @@ import {
   FileText,
   LogIn,
   LogOut,
-  Megaphone,
   Bell,
-  ArrowUpRight,
   ChevronRight,
   ClipboardList,
   Timer,
   Sparkles,
-  Calendar,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { apiClient, extractApiError } from '../../../api/apiClient';
@@ -23,14 +20,12 @@ import { useToast } from '../../../providers/ToastProvider';
 import {
   StatusBadge,
   LoadingSpinner,
-  Modal,
   Button,
 } from '../../../components/common/UI';
 import type {
   AttendanceRecord,
   LeaveBalanceItem,
   TaskItem,
-  AnnouncementItem,
   NotificationItem,
 } from '../../../types/user.types';
 
@@ -58,14 +53,6 @@ interface DashboardData {
     balances: LeaveBalanceItem[];
     pendingRequestsCount: number;
   };
-  announcements: AnnouncementItem[];
-  upcomingEvents: Array<{
-    id: string;
-    title: string;
-    type: string;
-    date: string;
-    description: string;
-  }>;
   notifications: {
     items: NotificationItem[];
     unreadCount: number;
@@ -83,14 +70,6 @@ const TONE_STYLES: Record<CardTone, { icon: string; accent: string; label: strin
   cyan: { icon: 'bg-cyan-50 text-cyan-700', accent: 'bg-cyan-500', label: 'text-cyan-700' },
 };
 
-const PRIORITY_BADGE_STYLES: Record<string, { label: string; classes: string }> = {
-  Urgent: { label: 'Important', classes: 'bg-rose-50 text-rose-700 ring-rose-600/10' },
-  'HR Policy': { label: 'General', classes: 'bg-blue-50 text-blue-700 ring-blue-600/10' },
-  General: { label: 'General', classes: 'bg-blue-50 text-blue-700 ring-blue-600/10' },
-  Event: { label: 'Event', classes: 'bg-indigo-50 text-indigo-700 ring-indigo-600/10' },
-  IT: { label: 'Info', classes: 'bg-slate-100 text-slate-600 ring-slate-500/10' },
-};
-
 export const EmployeeDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -99,7 +78,6 @@ export const EmployeeDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [apiNotice, setApiNotice] = useState<string | null>(null);
   const [clockLoading, setClockLoading] = useState(false);
-  const [selectedAnn, setSelectedAnn] = useState<AnnouncementItem | null>(null);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -173,8 +151,6 @@ export const EmployeeDashboardPage: React.FC = () => {
       balances: [],
       pendingRequestsCount: 0,
     },
-    announcements: [],
-    upcomingEvents: [],
     notifications: {
       items: [],
       unreadCount: 0,
@@ -187,8 +163,6 @@ export const EmployeeDashboardPage: React.FC = () => {
     todayAttendance,
     todayTasks,
     leaveOverview,
-    announcements,
-    upcomingEvents,
     notifications,
   } = data || emptyData;
 
@@ -268,14 +242,6 @@ export const EmployeeDashboardPage: React.FC = () => {
       icon: Clock3,
       tone: 'rose',
       to: '/employee/attendance',
-    },
-    {
-      title: 'Upcoming Events',
-      valueDisplay: `${upcomingEvents.length}`,
-      description: 'Scheduled on calendar',
-      icon: Calendar,
-      tone: 'violet',
-      to: '/employee/calendar',
     },
     {
       title: 'Unread Notifications',
@@ -416,11 +382,11 @@ export const EmployeeDashboardPage: React.FC = () => {
               Pending Requests &amp; Activity
             </h3>
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-              4 action items
+              3 action items
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {actionCards.map(renderStatCard)}
         </div>
       </section>
@@ -563,144 +529,9 @@ export const EmployeeDashboardPage: React.FC = () => {
                 <p className="mt-1 text-xs text-slate-400">Assigned tasks will appear here.</p>
               </div>
             )}
-
-            {upcomingEvents.length > 0 && (
-              <div className="mt-5 border-t border-slate-100 pt-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Upcoming Schedule
-                  </p>
-                  <button
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-                    onClick={() => navigate('/employee/calendar')}
-                    type="button"
-                  >
-                    Open calendar
-                  </button>
-                </div>
-                <div className="grid gap-2.5 sm:grid-cols-3">
-                  {upcomingEvents.slice(0, 3).map((ev) => (
-                    <div
-                      className="rounded-xl border border-slate-100 bg-slate-50/70 p-3"
-                      key={ev.id}
-                    >
-                      <p className="truncate text-xs font-semibold text-slate-800">{ev.title}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        {ev.type} · {ev.date}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </section>
         </div>
       </div>
-
-      {/* Section 4: Announcements — exact 1:1 replica of Admin AnnouncementsSection */}
-      <section
-        className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-        id="announcements"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Megaphone aria-hidden="true" className="h-[19px] w-[19px]" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Announcements</p>
-              <p className="mt-1 text-xs text-slate-500">Latest company updates</p>
-            </div>
-          </div>
-          <button
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-            onClick={() => navigate('/employee/announcements')}
-            type="button"
-          >
-            View all
-          </button>
-        </div>
-
-        {announcements.length > 0 ? (
-          <div className="mt-5 grid gap-3 lg:grid-cols-3">
-            {announcements.slice(0, 3).map((announcement) => {
-              const priority =
-                PRIORITY_BADGE_STYLES[announcement.category] || PRIORITY_BADGE_STYLES.General;
-              const formattedPubDate = announcement.published_at
-                ? new Intl.DateTimeFormat('en', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  }).format(new Date(announcement.published_at))
-                : '';
-
-              return (
-                <article
-                  className="group rounded-xl border border-slate-100 bg-[#fbfcfe] p-4 transition hover:border-blue-100 hover:bg-blue-50/30"
-                  key={announcement.id}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ring-inset ${priority.classes}`}
-                    >
-                      {priority.label}
-                    </span>
-                    <time className="text-[10px] text-slate-400">{formattedPubDate}</time>
-                  </div>
-                  <h3 className="mt-3 text-sm font-semibold text-slate-800">{announcement.title}</h3>
-                  <p className="mt-1.5 min-h-10 line-clamp-2 text-xs leading-5 text-slate-500">
-                    {announcement.content}
-                  </p>
-                  <button
-                    aria-label={`Read ${announcement.title} announcement`}
-                    className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 transition hover:text-blue-700 focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-blue-500/30"
-                    onClick={() => setSelectedAnn(announcement)}
-                    type="button"
-                  >
-                    Read announcement
-                    <ArrowUpRight
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                    />
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="mt-5 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-            <Megaphone aria-hidden="true" className="mx-auto h-6 w-6 text-slate-300" />
-            <p className="mt-2 text-sm font-medium text-slate-600">No announcements yet</p>
-            <p className="mt-1 text-xs text-slate-400">Company updates will appear here.</p>
-          </div>
-        )}
-      </section>
-
-      {/* Announcement Details Modal */}
-      <Modal
-        open={Boolean(selectedAnn)}
-        onClose={() => setSelectedAnn(null)}
-        title={selectedAnn?.title || ''}
-        subtitle={
-          selectedAnn?.published_at
-            ? `Published on ${new Date(selectedAnn.published_at).toLocaleDateString()}`
-            : undefined
-        }
-      >
-        {selectedAnn && (
-          <div className="space-y-4">
-            <StatusBadge status={selectedAnn.category} />
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-              {selectedAnn.content}
-            </p>
-            <div className="flex justify-end pt-3">
-              <Button variant="secondary" onClick={() => setSelectedAnn(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

@@ -3,14 +3,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Clock,
-  FileEdit,
   CalendarDays,
   FileText,
   CheckSquare,
-  Calendar,
-  Megaphone,
   Bell,
-  History,
   UserCircle,
   LogOut,
   Menu,
@@ -30,14 +26,10 @@ import type { NotificationItem } from '../../types/user.types';
 const EMPLOYEE_NAV = [
   { label: 'Dashboard', to: '/employee/dashboard', icon: LayoutDashboard },
   { label: 'Attendance', to: '/employee/attendance', icon: Clock },
-  { label: 'Attendance Correction', to: '/employee/attendance-correction', icon: FileEdit },
   { label: 'Leave Management', to: '/employee/leaves', icon: CalendarDays },
   { label: 'Work Updates', to: '/employee/work-updates', icon: FileText },
   { label: 'My Tasks', to: '/employee/tasks', icon: CheckSquare },
-  { label: 'Calendar', to: '/employee/calendar', icon: Calendar },
-  { label: 'Announcements', to: '/employee/announcements', icon: Megaphone },
   { label: 'Notifications', to: '/employee/notifications', icon: Bell },
-  { label: 'Employee History', to: '/employee/history', icon: History },
   { label: 'Profile', to: '/employee/profile', icon: UserCircle },
 ];
 

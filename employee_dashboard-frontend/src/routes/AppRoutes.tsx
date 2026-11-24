@@ -23,14 +23,10 @@ import EmployeeLoginPage from '../modules/Authentication/pages/EmployeeLoginPage
 // Employee Dashboard Pages
 import { EmployeeDashboardPage } from '../modules/Dashboard/pages/EmployeeDashboardPage';
 import { EmployeeAttendancePage } from '../modules/Attendance/pages/EmployeeAttendancePage';
-import { EmployeeAttendanceCorrectionPage } from '../modules/AttendanceCorrection/pages/EmployeeAttendanceCorrectionPage';
 import { EmployeeLeavePage } from '../modules/LeaveManagement/pages/EmployeeLeavePage';
 import { EmployeeWorkUpdatesPage } from '../modules/WorkUpdates/pages/EmployeeWorkUpdatesPage';
 import { EmployeeTasksPage } from '../modules/TaskManagement/pages/EmployeeTasksPage';
-import { EmployeeCalendarPage } from '../modules/Calendar/pages/EmployeeCalendarPage';
-import { EmployeeAnnouncementsPage } from '../modules/Announcements/pages/EmployeeAnnouncementsPage';
 import { EmployeeNotificationsPage } from '../modules/Notifications/pages/EmployeeNotificationsPage';
-import { EmployeeHistoryPage } from '../modules/Employee/pages/EmployeeHistoryPage';
 import { EmployeeProfilePage } from '../modules/Profile/pages/EmployeeProfilePage';
 
 import { ForbiddenPage } from '../pages/ForbiddenPage';
@@ -53,14 +49,14 @@ export function AppRoutes() {
             <Route index element={<Navigate replace to="/employee/dashboard" />} />
             <Route element={<EmployeeDashboardPage />} path="dashboard" />
             <Route element={<EmployeeAttendancePage />} path="attendance" />
-            <Route element={<EmployeeAttendanceCorrectionPage />} path="attendance-correction" />
+            <Route element={<Navigate replace to="/employee/dashboard" />} path="attendance-correction" />
             <Route element={<EmployeeLeavePage />} path="leaves" />
             <Route element={<EmployeeWorkUpdatesPage />} path="work-updates" />
             <Route element={<EmployeeTasksPage />} path="tasks" />
-            <Route element={<EmployeeCalendarPage />} path="calendar" />
-            <Route element={<EmployeeAnnouncementsPage />} path="announcements" />
+            <Route element={<Navigate replace to="/employee/dashboard" />} path="calendar" />
+            <Route element={<Navigate replace to="/employee/dashboard" />} path="announcements" />
             <Route element={<EmployeeNotificationsPage />} path="notifications" />
-            <Route element={<EmployeeHistoryPage />} path="history" />
+            <Route element={<Navigate replace to="/employee/dashboard" />} path="history" />
             <Route element={<EmployeeProfilePage />} path="profile" />
           </Route>
         </Route>
