@@ -10,7 +10,7 @@ import {
   Check,
 } from 'lucide-react';
 import { LeaveRequest, LeaveReportType } from '../types/leave.types';
-import { LEAVE_DEPARTMENTS } from '../constants/leave.constants';
+import { getTodayString, LEAVE_DEPARTMENTS } from '../constants/leave.constants';
 import { exportLeaveToExcel, exportLeaveToPDF } from '../utils/leaveExport.utils';
 import leaveService from '../services/leave.service';
 
@@ -27,8 +27,8 @@ export const LeaveReportsModal: React.FC<LeaveReportsModalProps> = ({
 }) => {
   const [reportType, setReportType] = useState<LeaveReportType>('monthly');
   const [selectedDept, setSelectedDept] = useState<string>('All Departments');
-  const [month, setMonth] = useState<number>(11);
-  const [year, setYear] = useState<number>(2026);
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
   const [searchEmployee, setSearchEmployee] = useState<string>('');
 
   const reportTabs: Array<{ id: LeaveReportType; label: string; icon: React.ElementType; desc: string }> = [
@@ -67,7 +67,7 @@ export const LeaveReportsModal: React.FC<LeaveReportsModalProps> = ({
     }
 
     if (reportType === 'daily') {
-      const today = '2026-11-24';
+      const today = getTodayString();
       result = result.filter(
         (r) => r.status === 'Approved' && r.startDate <= today && today <= r.endDate
       );

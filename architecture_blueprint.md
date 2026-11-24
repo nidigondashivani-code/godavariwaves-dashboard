@@ -152,7 +152,6 @@ employee_dashboard-frontend/
 │   │   │   └── types/
 │   │   │       └── notification.types.ts
 │   │   ├── Attendance/
-│   │   ├── AttendanceCorrection/
 │   │   ├── LeaveManagement/
 │   │   ├── TaskManagement/
 │   │   ├── WorkUpdates/
@@ -183,8 +182,6 @@ erDiagram
 
     Employees ||--o{ Attendance : "records"
     Attendance ||--o{ AttendanceLogs : "detailed punches"
-    Employees ||--o{ AttendanceCorrections : "requests"
-    Attendance ||--o{ AttendanceCorrections : "references"
 
     LeaveTypes ||--o{ LeaveBalances : "tracks"
     LeaveTypes ||--o{ LeaveRequests : "requested as"
@@ -198,14 +195,12 @@ erDiagram
     Employees ||--o{ TaskUpdates : "submits"
 
     Employees ||--o{ PerformanceReviews : "reviewed"
-    Employees ||--o{ Announcements : "authored"
     Users ||--o{ Notifications : "receives"
     Employees ||--o{ EmployeeHistory : "lifecycle log"
-    Employees ||--o{ ProfileUpdateRequests : "initiates"
     Users ||--o{ AuditLogs : "actions traced"
 ```
 
-### Table Master Matrix (25 Tables)
+### Table Master Matrix (22 Tables)
 
 | # | Table Name | Key Constraints & Relations | Business Purpose |
 |---|------------|-----------------------------|------------------|
@@ -218,22 +213,19 @@ erDiagram
 | 7 | `Employees` | FK `user_id`, FK `department_id`, FK `designation_id` | Master employee profile record. |
 | 8 | `Attendance` | FK `employee_id`, UNIQUE(`employee_id`, `date`) | Daily aggregated attendance. |
 | 9 | `AttendanceLogs` | FK `attendance_id`, Punch IN/OUT | Audit trail of raw punch events. |
-| 10 | `AttendanceCorrections` | FK `attendance_id`, FK `employee_id` | Regularization workflow queue. |
-| 11 | `LeaveTypes` | Casual, Sick, Emergency | Leave category policies. |
-| 12 | `LeaveBalances` | FK `employee_id`, FK `leave_type_id` | Running balance ledger. |
-| 13 | `LeaveRequests` | FK `employee_id`, FK `actioned_by` | Leave application lifecycle. |
-| 14 | `Holidays` | UNIQUE(`date`), Holiday Name | Company holiday calendar. |
-| 15 | `CalendarEvents` | FK `department_id`, FK `created_by` | Master scheduling calendar. |
-| 16 | `Tasks` | FK `created_by` -> `Users` | Task management master entity. |
-| 17 | `TaskAssignments` | FK `task_id`, FK `employee_id` | Eligible role task assignment. |
-| 18 | `TaskUpdates` | FK `task_id`, FK `employee_id` | Progress notes & developer updates. |
-| 19 | `PerformanceReviews` | FK `employee_id`, FK `reviewer_id` | Appraisal scores & feedback. |
-| 20 | `Announcements` | FK `author_id`, FK `target_department_id` | Official company notices. |
-| 21 | `Notifications` | FK `user_id`, Priority, Category | Real-time notification store. |
-| 22 | `EmployeeHistory` | FK `employee_id`, Event Type, JSON diff | Immutable lifecycle audit trail. |
-| 23 | `ProfileUpdateRequests` | FK `employee_id`, Delta JSON | Controlled profile delta queue. |
-| 24 | `AuditLogs` | FK `user_id`, IP, Action, Entity | System compliance log. |
-| 25 | `Settings` | Key-Value pairs, Type Enums | Dynamic office policy settings. |
+| 10 | `LeaveTypes` | Casual, Sick, Emergency | Leave category policies. |
+| 11 | `LeaveBalances` | FK `employee_id`, FK `leave_type_id` | Running balance ledger. |
+| 12 | `LeaveRequests` | FK `employee_id`, FK `actioned_by` | Leave application lifecycle. |
+| 13 | `Holidays` | UNIQUE(`date`), Holiday Name | Company holiday calendar. |
+| 14 | `CalendarEvents` | FK `department_id`, FK `created_by` | Master scheduling calendar. |
+| 15 | `Tasks` | FK `created_by` -> `Users` | Task management master entity. |
+| 16 | `TaskAssignments` | FK `task_id`, FK `employee_id` | Eligible role task assignment. |
+| 17 | `TaskUpdates` | FK `task_id`, FK `employee_id` | Progress notes & developer updates. |
+| 18 | `PerformanceReviews` | FK `employee_id`, FK `reviewer_id` | Appraisal scores & feedback. |
+| 19 | `Notifications` | FK `user_id`, Priority, Category | Real-time notification store. |
+| 20 | `EmployeeHistory` | FK `employee_id`, Event Type, JSON diff | Immutable lifecycle audit trail. |
+| 21 | `AuditLogs` | FK `user_id`, IP, Action, Entity | System compliance log. |
+| 22 | `Settings` | Key-Value pairs, Type Enums | Dynamic office policy settings. |
 
 ---
 
@@ -246,7 +238,7 @@ erDiagram
 - **No Super Admin**: Organizational authority rests directly with the Administrator.
 - **Permission Matrix**: Organized by modular capabilities:
   - **Employee Management**: `View`, `Create`, `Edit`, `Delete`, `Toggle Access`, `Reset Password`.
-  - **Attendance Management**: `View Own`, `View All`, `Punch In/Out`, `Regularization Request`, `Approve Correction`.
+  - **Attendance Management**: `View Own`, `View All`, `Punch In/Out`, `Export Reports`.
   - **Leave Management**: `Apply Leave`, `View Team Leaves`, `Approve/Reject Leave`.
   - **Task Management**: `View Tasks`, `Create Task`, `Assign Task`, `Submit Daily Update`.
   - **Departments & Roles**: `View`, `Manage Team Leads`, `Configure Designations`.
@@ -297,7 +289,7 @@ flowchart LR
   - Three filter tabs: `All`, `Unread`, `Read`.
 - **Supported Notification Categories**:
   - **Employee**: Onboarding, deactivation, reactivation, dashboard access toggled, password reset.
-  - **Attendance**: Punch in/out, late arrival, 11:00 AM auto-absent, attendance correction requests.
+  - **Attendance**: Punch in/out, late arrival, 11:00 AM auto-absent, attendance status tracking.
   - **Leave**: Requests filed, approvals, rejections, emergency leave alerts.
   - **Tasks**: Task assigned, daily work update submitted, status transitions.
 - **Notification Card Design**:

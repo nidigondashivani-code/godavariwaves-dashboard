@@ -53,7 +53,7 @@ function AppRoutes() {
             path="/departments"
           />
 
-          {/* Dedicated Operations Modules */}
+          {/* Dedicated Operations Modules with Left Navigation Sidebar */}
           <Route
             element={
               <AttendanceLayout>

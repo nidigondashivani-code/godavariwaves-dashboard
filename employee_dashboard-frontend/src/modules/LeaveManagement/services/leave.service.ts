@@ -11,16 +11,30 @@ import {
   TeamConflictCheckResult,
   ConflictingLeave,
 } from '../types/leave.types';
-import {
-  INITIAL_LEAVE_REQUESTS,
-  INITIAL_LEAVE_BALANCES,
-} from '../constants/leave.constants';
+import { getTodayString } from '../constants/leave.constants';
 import notificationService from '../../Notifications/services/notification.service';
 import { rolePermissionsService } from '../../RolePermissions/services/rolePermissions.service';
 
 const LEAVE_STORAGE_KEY = 'ems_admin_leave_requests_v1';
 const BALANCE_STORAGE_KEY = 'ems_admin_leave_balances_v1';
-const TODAY_STR = '2026-11-24'; // Enterprise consistent reference date
+const LEGACY_SEEDED_REQUEST_IDS = new Set([
+  'LR-2026-001',
+  'LR-2026-002',
+  'LR-2026-003',
+  'LR-2026-004',
+  'LR-2026-005',
+  'LR-2026-006',
+  'LR-2026-007',
+]);
+const LEGACY_SEEDED_EMPLOYEE_IDS = new Set([
+  'EMP-101',
+  'EMP-102',
+  'EMP-103',
+  'EMP-104',
+  'EMP-105',
+  'EMP-106',
+  'EMP-107',
+]);
 
 type LeaveListener = (requests: LeaveRequest[]) => void;
 
@@ -36,24 +50,37 @@ class LeaveService {
   private loadFromStorage(): void {
     try {
       const storedRequests = localStorage.getItem(LEAVE_STORAGE_KEY);
-      if (storedRequests) {
-        const parsed = JSON.parse(storedRequests);
-        this.requests = Array.isArray(parsed) ? parsed : [...INITIAL_LEAVE_REQUESTS];
-      } else {
-        this.requests = [...INITIAL_LEAVE_REQUESTS];
-        this.saveRequests();
+      const parsedRequests = storedRequests ? JSON.parse(storedRequests) : [];
+      const requests = Array.isArray(parsedRequests) ? parsedRequests : [];
+      this.requests = requests.filter(
+        (request: LeaveRequest) => request && !LEGACY_SEEDED_REQUEST_IDS.has(request.id)
+      );
+      if (!storedRequests || this.requests.length !== requests.length) {
+        localStorage.setItem(LEAVE_STORAGE_KEY, JSON.stringify(this.requests));
       }
 
       const storedBalances = localStorage.getItem(BALANCE_STORAGE_KEY);
-      if (storedBalances) {
-        this.balances = JSON.parse(storedBalances);
-      } else {
-        this.balances = { ...INITIAL_LEAVE_BALANCES };
-        this.saveBalances();
+      const parsedBalances = storedBalances ? JSON.parse(storedBalances) : {};
+      const balances =
+        parsedBalances && typeof parsedBalances === 'object' && !Array.isArray(parsedBalances)
+          ? (parsedBalances as Record<string, LeaveBalance>)
+          : {};
+      this.balances = Object.keys(balances).reduce<Record<string, LeaveBalance>>(
+        (cleanBalances, employeeId) => {
+          if (!LEGACY_SEEDED_EMPLOYEE_IDS.has(employeeId)) {
+            cleanBalances[employeeId] = balances[employeeId];
+          }
+          return cleanBalances;
+        },
+        {}
+      );
+      if (!storedBalances || Object.keys(this.balances).length !== Object.keys(balances).length) {
+        localStorage.setItem(BALANCE_STORAGE_KEY, JSON.stringify(this.balances));
       }
-    } catch (e) {
-      this.requests = [...INITIAL_LEAVE_REQUESTS];
-      this.balances = { ...INITIAL_LEAVE_BALANCES };
+    } catch (error) {
+      this.requests = [];
+      this.balances = {};
+      console.error('Failed to load leave data', error);
     }
   }
 
@@ -107,6 +134,7 @@ class LeaveService {
    * Compute the 6 interactive dashboard summary metrics
    */
   public getMetrics(): LeaveDashboardMetrics {
+    const today = getTodayString();
     const totalRequests = this.requests.length;
     const pendingApproval = this.requests.filter((r) => r.status === 'Pending').length;
     const approvedLeaves = this.requests.filter((r) => r.status === 'Approved').length;
@@ -114,12 +142,12 @@ class LeaveService {
 
     // Employees on leave today (Approved and today falls within start and end date inclusive)
     const onLeaveToday = this.requests.filter(
-      (r) => r.status === 'Approved' && r.startDate <= TODAY_STR && TODAY_STR <= r.endDate
+      (r) => r.status === 'Approved' && r.startDate <= today && today <= r.endDate
     ).length;
 
     // Upcoming leaves (Approved or Pending where start date is strictly after today)
     const upcomingLeaves = this.requests.filter(
-      (r) => r.status !== 'Rejected' && r.startDate > TODAY_STR
+      (r) => r.status !== 'Rejected' && r.startDate > today
     ).length;
 
     return {
@@ -437,8 +465,8 @@ class LeaveService {
       employeeName: req ? req.employeeName : 'Employee',
       department: req ? req.department : 'General',
       designation: req ? req.designation : 'Staff',
-      month: 11,
-      year: 2026,
+      month: new Date().getMonth() + 1,
+      year: new Date().getFullYear(),
       casualLeaveUsedThisMonth: 0,
       casualLeaveRemainingThisMonth: 1, // Max 1 per month
       casualLeaveAnnualUsed: 0,
@@ -471,11 +499,12 @@ class LeaveService {
   public createLeaveRequest(
     data: Omit<LeaveRequest, 'id' | 'appliedDate' | 'status'>
   ): LeaveRequest {
-    const id = `LR-2026-${String(this.requests.length + 1).padStart(3, '0')}`;
+    const today = getTodayString();
+    const id = `LR-${today.slice(0, 4)}-${String(this.requests.length + 1).padStart(3, '0')}`;
     const newReq: LeaveRequest = {
       ...data,
       id,
-      appliedDate: TODAY_STR,
+      appliedDate: today,
       status: 'Pending',
     };
 

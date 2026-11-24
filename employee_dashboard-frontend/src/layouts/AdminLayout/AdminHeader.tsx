@@ -14,8 +14,6 @@ import {
   Clock3,
   CalendarOff,
   ClipboardList,
-  CalendarClock,
-  ContactRound,
   ListTodo,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -25,6 +23,8 @@ import {
   readAdminProfile,
   type AdminProfile,
 } from '../../modules/Profile/services/adminProfile.service';
+import notificationService from '../../modules/Notifications/services/notification.service';
+import type { NotificationItem } from '../../modules/Notifications/types/notification.types';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -38,12 +38,6 @@ interface DashboardSearchResult {
   sectionId?: string;
 }
 
-const notifications = [
-  { id: 1, title: 'Leave request received', detail: '12 min ago', tone: 'blue' },
-  { id: 2, title: 'Profile update submitted', detail: '1 hr ago', tone: 'amber' },
-  { id: 3, title: 'Task update needs review', detail: '3 hrs ago', tone: 'violet' },
-];
-
 const dashboardSearchResults: DashboardSearchResult[] = [
   ...adminNavigationItems.map(({ label, icon }) => ({
     label,
@@ -51,12 +45,7 @@ const dashboardSearchResults: DashboardSearchResult[] = [
     activeNavigation: label,
     ...(label === 'Dashboard Overview' ? { sectionId: 'dashboard-overview' } : {}),
     ...(label === 'Employee Management' || label === 'Attendance' ? { sectionId: 'workforce-overview' } : {}),
-    ...(label === 'Leave Requests' ||
-    label === 'Attendance Corrections' ||
-    label === 'Profile Requests'
-      ? { sectionId: 'pending-requests' }
-      : {}),
-    ...(label === 'Announcements' ? { sectionId: 'announcements' } : {}),
+    ...(label === 'Leave Requests' ? { sectionId: 'pending-requests' } : {}),
   })),
   { label: 'Total Employees', icon: UsersRound, activeNavigation: 'Employee Management', sectionId: 'module-total-employees' },
   { label: 'Present Today', icon: UserCheck, activeNavigation: 'Attendance', sectionId: 'module-present-today' },
@@ -64,19 +53,26 @@ const dashboardSearchResults: DashboardSearchResult[] = [
   { label: 'Late Employees', icon: Clock3, activeNavigation: 'Attendance', sectionId: 'module-late-employees' },
   { label: 'Employees On Leave', icon: CalendarOff, activeNavigation: 'Attendance', sectionId: 'module-employees-on-leave' },
   { label: 'Pending Leave Requests', icon: ClipboardList, activeNavigation: 'Leave Requests', sectionId: 'module-pending-leave-requests' },
-  { label: 'Pending Attendance Corrections', icon: CalendarClock, activeNavigation: 'Attendance Corrections', sectionId: 'module-pending-attendance-corrections' },
-  { label: 'Pending Profile Requests', icon: ContactRound, activeNavigation: 'Profile Requests', sectionId: 'module-pending-profile-requests' },
   { label: 'Pending Task Updates', icon: ListTodo, activeNavigation: 'Task Updates' },
-  { label: 'Company Calendar', icon: CalendarDays, activeNavigation: 'Calendar' },
-  { label: 'Upcoming Events', icon: CalendarDays, activeNavigation: 'Calendar' },
   { label: "Today's Holidays", icon: CalendarDays, activeNavigation: 'Dashboard Overview', sectionId: 'todays-holidays' },
   { label: 'Upcoming Birthdays', icon: UserRound, activeNavigation: 'Dashboard Overview', sectionId: 'upcoming-birthdays' },
 ];
 
+const formatNotificationTime = (timestamp: string): string => {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
+};
+
 function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
   const [adminProfile, setAdminProfile] = useState<AdminProfile>(readAdminProfile);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => notificationService.getNotifications());
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [readAll, setReadAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -88,6 +84,7 @@ function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
         item.label.toLowerCase().includes(searchQuery.trim().toLowerCase()),
       )
     : [];
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
   const formattedDate = new Intl.DateTimeFormat('en', {
     weekday: 'short',
     month: 'short',
@@ -100,6 +97,8 @@ function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
     window.addEventListener('ems_profile_updated', handleProfileUpdated);
     return () => window.removeEventListener('ems_profile_updated', handleProfileUpdated);
   }, []);
+
+  useEffect(() => notificationService.subscribe(setNotifications), []);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -302,7 +301,7 @@ function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
           <div className="relative" ref={notificationRef}>
             <button
               aria-expanded={notificationsOpen}
-              aria-label="Notifications"
+              aria-label={`Notifications (${unreadCount} unread)`}
               className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition ${
                 notificationsOpen
                   ? 'border-blue-200 bg-blue-50 text-blue-700'
@@ -314,7 +313,7 @@ function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
               type="button"
             >
               <Bell aria-hidden="true" className="h-[18px] w-[18px]" />
-              {!readAll && (
+              {unreadCount > 0 && (
                 <span className="absolute right-[9px] top-[8px] h-2 w-2 rounded-full border-2 border-white bg-rose-500" />
               )}
             </button>
@@ -334,24 +333,42 @@ function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
                   </button>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {notifications.map((notification) => (
-                    <div className="flex gap-3 px-4 py-3.5" key={notification.id}>
+                  {notifications.length > 0 ? notifications.slice(0, 6).map((notification) => (
+                    <button
+                      className={`flex w-full gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50 ${
+                        notification.isRead ? 'bg-white' : 'bg-blue-50/40'
+                      }`}
+                      key={notification.id}
+                      onClick={() => {
+                        notificationService.markAsRead(notification.id);
+                        if (notification.actionUrl === '/admin/work-updates') onNavigate('Task Updates');
+                        setNotificationsOpen(false);
+                      }}
+                      type="button"
+                    >
                       <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                        notification.tone === 'blue' ? 'bg-blue-50 text-blue-600' :
-                          notification.tone === 'amber' ? 'bg-amber-50 text-amber-600' : 'bg-violet-50 text-violet-600'
+                        notification.category === 'leave'
+                          ? 'bg-amber-50 text-amber-600'
+                          : notification.category === 'task'
+                            ? 'bg-violet-50 text-violet-600'
+                            : 'bg-blue-50 text-blue-600'
                       }`}>
                         <Bell aria-hidden="true" className="h-4 w-4" />
                       </span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-800">{notification.title}</p>
-                        <p className="mt-1 text-[11px] text-slate-500">{notification.detail}</p>
-                      </div>
-                    </div>
-                  ))}
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-slate-800">{notification.title}</span>
+                        <span className="mt-1 block text-[11px] leading-4 text-slate-500">{notification.description}</span>
+                        <span className="mt-1 block text-[10px] text-slate-400">{formatNotificationTime(notification.timestamp)}</span>
+                      </span>
+                    </button>
+                  )) : (
+                    <p className="px-4 py-6 text-center text-xs text-slate-500">You are all caught up.</p>
+                  )}
                 </div>
                 <button
-                  className="flex w-full items-center justify-center gap-2 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-blue-600 transition hover:bg-slate-50"
-                  onClick={() => setReadAll(true)}
+                  className="flex w-full items-center justify-center gap-2 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-blue-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={unreadCount === 0}
+                  onClick={() => notificationService.markAllAsRead()}
                   type="button"
                 >
                   <Check aria-hidden="true" className="h-3.5 w-3.5" />

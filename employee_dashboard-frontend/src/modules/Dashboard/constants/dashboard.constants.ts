@@ -1,4 +1,4 @@
-import type { Announcement, DashboardMetrics } from '../types/dashboard.types';
+import type { DashboardMetrics } from '../types/dashboard.types';
 
 export const dashboardMetrics: DashboardMetrics = {
   totalEmployees: 248,
@@ -7,8 +7,6 @@ export const dashboardMetrics: DashboardMetrics = {
   lateEmployees: 8,
   employeesOnLeave: 13,
   pendingLeaveRequests: 6,
-  pendingAttendanceCorrections: 4,
-  pendingProfileRequests: 3,
   pendingTaskUpdates: 9,
 };
 
@@ -25,27 +23,3 @@ export const upcomingBirthdays = [
   { id: 'birthday-2', name: 'Jordan Lee', initials: 'JL', daysUntil: 5, date: dateInDays(5) },
   { id: 'birthday-3', name: 'Samira Patel', initials: 'SP', daysUntil: 9, date: dateInDays(9) },
 ];
-
-export const announcements = [
-  {
-    id: 'announcement-1',
-    title: 'Quarterly town hall',
-    description: 'Join the leadership team for a company update and an open Q&A.',
-    date: 'Nov 23, 2026',
-    priority: 'high',
-  },
-  {
-    id: 'announcement-2',
-    title: 'Benefits enrollment window',
-    description: 'Review your benefits selections before the upcoming enrollment deadline.',
-    date: 'Nov 21, 2026',
-    priority: 'normal',
-  },
-  {
-    id: 'announcement-3',
-    title: 'Updated office guidelines',
-    description: 'The latest workplace and visitor guidelines are ready for review.',
-    date: 'Nov 18, 2026',
-    priority: 'low',
-  },
-] satisfies Announcement[];

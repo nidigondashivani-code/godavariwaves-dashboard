@@ -24,11 +24,17 @@ function AdminLayout({ children }: AdminLayoutProps) {
 
   const activeNavigation = location.pathname === '/admin/work-updates'
     ? 'Task Updates'
-    : location.pathname === '/admin/calendar'
-      ? 'Calendar'
-      : location.pathname === '/admin/profile'
-        ? 'Profile & Settings'
-        : dashboardNavigation;
+    : location.pathname === '/attendance'
+      ? 'Attendance'
+      : location.pathname === '/leaves' || location.pathname === '/leave'
+        ? 'Leave Requests'
+        : location.pathname === '/employees'
+          ? 'Employee Management'
+          : location.pathname === '/admin/calendar'
+            ? 'Calendar'
+            : location.pathname === '/admin/profile'
+              ? 'Profile & Settings'
+              : dashboardNavigation;
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -88,9 +94,6 @@ function AdminLayout({ children }: AdminLayoutProps) {
       'Employee Management': 'workforce-overview',
       'Attendance': 'workforce-overview',
       'Leave Requests': 'pending-requests',
-      'Attendance Corrections': 'pending-requests',
-      'Profile Requests': 'pending-requests',
-      'Announcements': 'announcements',
     };
     const sectionId = navSectionMap[label];
     if (sectionId) {

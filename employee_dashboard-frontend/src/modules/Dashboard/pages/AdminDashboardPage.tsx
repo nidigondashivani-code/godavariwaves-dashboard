@@ -5,18 +5,14 @@ import {
   Clock3,
   CalendarOff,
   ClipboardList,
-  CalendarClock,
-  ContactRound,
   ListTodo,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import AdminLayout from '../../../layouts/AdminLayout/AdminLayout';
-import AnnouncementsSection from '../components/AnnouncementsSection';
 import StatCard, { type StatCardTone } from '../components/StatCard';
 import UpcomingBirthdays from '../components/UpcomingBirthdays';
 import UpcomingHolidaysList from '../components/UpcomingHolidaysList';
 import {
-  announcements,
   dashboardMetrics,
   todayHoliday,
   upcomingBirthdays,
@@ -89,22 +85,6 @@ const pendingRequestCards: {
     id: 'module-pending-leave-requests',
   },
   {
-    title: 'Pending Attendance Corrections',
-    value: dashboardMetrics.pendingAttendanceCorrections,
-    description: 'Awaiting admin review',
-    icon: CalendarClock,
-    tone: 'cyan',
-    id: 'module-pending-attendance-corrections',
-  },
-  {
-    title: 'Pending Profile Requests',
-    value: dashboardMetrics.pendingProfileRequests,
-    description: 'Awaiting admin review',
-    icon: ContactRound,
-    tone: 'violet',
-    id: 'module-pending-profile-requests',
-  },
-  {
     title: 'Pending Task Updates',
     value: dashboardMetrics.pendingTaskUpdates,
     description: 'Awaiting admin review',
@@ -141,7 +121,7 @@ function AdminDashboardPage() {
           </div>
         </section>
 
-        {/* Section 2: Pending Requests & Approvals (Modules 6-9) */}
+        {/* Section 2: Pending Requests & Approvals */}
         <section aria-labelledby="pending-requests-heading" className="scroll-mt-24" id="pending-requests">
           <div className="mb-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -149,16 +129,16 @@ function AdminDashboardPage() {
                 Pending Requests & Approvals
               </h3>
               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                4 action items
+                2 action items
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {pendingRequestCards.map((card) => <StatCard {...card} key={card.title} />)}
           </div>
         </section>
 
-        {/* Section 3: Schedules & Celebrations (Modules 10-11) */}
+        {/* Section 3: Schedules & Celebrations */}
         <div className="grid gap-4 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <UpcomingHolidaysList holiday={todayHoliday} />
@@ -167,9 +147,6 @@ function AdminDashboardPage() {
             <UpcomingBirthdays birthdays={upcomingBirthdays} />
           </div>
         </div>
-
-        {/* Section 4: Announcements (Module 12) */}
-        <AnnouncementsSection announcements={announcements} />
       </div>
     </AdminLayout>
   );

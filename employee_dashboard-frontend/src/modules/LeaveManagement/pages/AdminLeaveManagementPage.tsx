@@ -33,6 +33,7 @@ import ApproveLeaveModal from '../components/ApproveLeaveModal';
 import RejectLeaveModal from '../components/RejectLeaveModal';
 import LeaveReportsModal from '../components/LeaveReportsModal';
 import { exportLeaveToExcel, exportLeaveToPDF } from '../utils/leaveExport.utils';
+import { getTodayString } from '../constants/leave.constants';
 
 interface ToastAlert {
   id: string;
@@ -97,7 +98,7 @@ export const AdminLeaveManagementPage: React.FC = () => {
 
   // Filter logic
   const filteredRequests = useMemo(() => {
-    const today = '2026-11-24';
+    const today = getTodayString();
 
     return requests.filter((req) => {
       // 1. Search filter
