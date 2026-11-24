@@ -5,7 +5,7 @@ import Header from './Header';
 interface DashboardLayoutProps {
   children: React.ReactNode;
   activeNav?: string;
-  onNavigate?: (nav: 'employees' | 'roles') => void;
+  onNavigate?: (nav: 'employees' | 'roles' | 'leaves' | 'attendance') => void;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({

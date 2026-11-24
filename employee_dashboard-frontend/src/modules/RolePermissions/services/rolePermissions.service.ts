@@ -238,6 +238,25 @@ class RolePermissionsService {
   }
 
   /**
+   * Record generic activity event in audit log
+   */
+  public logActivity(activity: Omit<ActivityLogItem, 'id' | 'timestamp'> & { timestamp?: string }): void {
+    try {
+      const now = activity.timestamp || new Date().toISOString().replace('T', ' ').substring(0, 19);
+      const current = this.getActivityLogs();
+      const newActivity: ActivityLogItem = {
+        id: `act-${Date.now()}`,
+        timestamp: now,
+        ...activity,
+      };
+      const updated = [newActivity, ...current].slice(0, 50);
+      localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // quiet
+    }
+  }
+
+  /**
    * Get activity logs
    */
   public getActivityLogs(): ActivityLogItem[] {

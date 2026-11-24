@@ -2,6 +2,8 @@ import React from 'react';
 import {
   Users,
   ShieldCheck,
+  CalendarDays,
+  Clock3,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -12,7 +14,7 @@ interface SidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   activeNav?: string;
-  onNavigate?: (nav: 'employees' | 'roles') => void;
+  onNavigate?: (nav: 'employees' | 'roles' | 'leaves' | 'attendance') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -72,8 +74,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Navigation Items (Focused ONLY on Employee Management) */}
+        {/* Navigation Items */}
         <div className="flex-1 overflow-y-auto px-3 py-6 space-y-6">
+          {/* 1. Core HR Management */}
           <div>
             {!collapsed && (
               <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-blue-300/80 mb-2">
@@ -112,6 +115,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <ShieldCheck className={`w-4 h-4 shrink-0 ${activeNav === 'roles' ? 'text-[#1E3A8A]' : 'text-blue-300 group-hover:text-white'}`} />
                 {!collapsed && <span className="truncate">Role & Permissions</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Standalone Operations Section */}
+          <div className="pt-4 border-t border-blue-800/60">
+            {!collapsed && (
+              <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-blue-300/80 mb-2">
+                Operations
+              </h4>
+            )}
+
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate?.('attendance');
+                  onCloseMobile();
+                }}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group ${
+                  activeNav === 'attendance'
+                    ? 'bg-[#DBEAFE] text-[#1E3A8A] shadow-xs'
+                    : 'text-blue-100 hover:text-white hover:bg-[#2563EB]'
+                }`}
+              >
+                <Clock3 className={`w-4 h-4 shrink-0 ${activeNav === 'attendance' ? 'text-[#1E3A8A]' : 'text-blue-300 group-hover:text-white'}`} />
+                {!collapsed && <span className="truncate">Attendance Management</span>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate?.('leaves');
+                  onCloseMobile();
+                }}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group ${
+                  activeNav === 'leaves'
+                    ? 'bg-[#DBEAFE] text-[#1E3A8A] shadow-xs'
+                    : 'text-blue-100 hover:text-white hover:bg-[#2563EB]'
+                }`}
+              >
+                <CalendarDays className={`w-4 h-4 shrink-0 ${activeNav === 'leaves' ? 'text-[#1E3A8A]' : 'text-blue-300 group-hover:text-white'}`} />
+                {!collapsed && <span className="truncate">Leave Management</span>}
               </button>
             </div>
           </div>
