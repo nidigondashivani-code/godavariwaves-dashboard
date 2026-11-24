@@ -10,8 +10,6 @@ export const dashboardMetrics: DashboardMetrics = {
   pendingTaskUpdates: 9,
 };
 
-export const todayHoliday = null;
-
 const dateInDays = (days: number): string => {
   const date = new Date();
   date.setDate(date.getDate() + days);

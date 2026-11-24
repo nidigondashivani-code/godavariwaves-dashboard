@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import AdminDashboardPage from '../modules/Dashboard/pages/AdminDashboardPage';
 import AdminWorkUpdatesPage from '../modules/WorkUpdates/pages/AdminWorkUpdatesPage';
-import CompanyCalendarPage from '../modules/Calendar/pages/CompanyCalendarPage';
 import AdminProfileSettingsPage from '../modules/Profile/pages/AdminProfileSettingsPage';
 import LoginPage from '../modules/Authentication/pages/LoginPage';
 import ManageEmployeesPage from '../modules/Employee/pages/ManageEmployeesPage';
@@ -24,7 +23,6 @@ function AppRoutes() {
           {/* Admin Dashboard & Executive Suite */}
           <Route element={<AdminDashboardPage />} path="/admin" />
           <Route element={<AdminWorkUpdatesPage />} path="/admin/work-updates" />
-          <Route element={<CompanyCalendarPage />} path="/admin/calendar" />
           <Route element={<AdminProfileSettingsPage />} path="/admin/profile" />
 
           {/* Core HR Management Modules inside Unified Admin Layout */}

@@ -124,7 +124,13 @@ function AdminSidebar({
                       onSelectNavigation(item.subItems![0].label);
                       onCloseMobile();
                     } else {
-                      toggleSubMenu(item.label);
+                      if (!isEmployeeManagementActive) {
+                        onSelectNavigation(item.subItems![0].label);
+                        setExpandedMenus((prev) => ({ ...prev, [item.label]: true }));
+                        onCloseMobile();
+                      } else {
+                        toggleSubMenu(item.label);
+                      }
                     }
                   }}
                   title={collapsed ? item.label : undefined}

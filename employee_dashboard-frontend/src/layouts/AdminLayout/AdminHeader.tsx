@@ -65,7 +65,6 @@ const dashboardSearchResults: DashboardSearchResult[] = [
   { label: 'Employees On Leave', icon: CalendarOff, activeNavigation: 'Attendance', sectionId: 'module-employees-on-leave' },
   { label: 'Pending Leave Requests', icon: ClipboardList, activeNavigation: 'Leave Requests', sectionId: 'module-pending-leave-requests' },
   { label: 'Pending Task Updates', icon: ListTodo, activeNavigation: 'Task Updates' },
-  { label: "Today's Holidays", icon: CalendarDays, activeNavigation: 'Dashboard Overview', sectionId: 'todays-holidays' },
   { label: 'Upcoming Birthdays', icon: UserRound, activeNavigation: 'Dashboard Overview', sectionId: 'upcoming-birthdays' },
 ];
 
@@ -335,13 +334,24 @@ function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
                     <p className="text-sm font-semibold text-slate-900">Notifications</p>
                     <p className="mt-0.5 text-[11px] text-slate-500">Recent activity</p>
                   </div>
-                  <button
-                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                    onClick={() => setNotificationsOpen(false)}
-                    type="button"
-                  >
-                    <X aria-hidden="true" className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {notifications.length > 0 && (
+                      <button
+                        className="rounded-lg px-2 py-1 text-[11px] font-medium text-rose-600 transition hover:bg-rose-50 hover:text-rose-700"
+                        onClick={() => notificationService.clearAll()}
+                        type="button"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                    <button
+                      className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      onClick={() => setNotificationsOpen(false)}
+                      type="button"
+                    >
+                      <X aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="divide-y divide-slate-100">
                   {notifications.length > 0 ? notifications.slice(0, 6).map((notification) => (
@@ -373,7 +383,10 @@ function AdminHeader({ onMenuClick, onNavigate }: AdminHeaderProps) {
                       </span>
                     </button>
                   )) : (
-                    <p className="px-4 py-6 text-center text-xs text-slate-500">You are all caught up.</p>
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-xs font-medium text-slate-600">No notifications</p>
+                      <p className="mt-1 text-[11px] text-slate-400">You are all caught up.</p>
+                    </div>
                   )}
                 </div>
                 <button

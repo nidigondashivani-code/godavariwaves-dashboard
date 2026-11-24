@@ -1,6 +1,5 @@
 import {
   CalendarCheck2,
-  CalendarDays,
   ClipboardList,
   LayoutDashboard,
   ListTodo,
@@ -38,6 +37,5 @@ export const adminNavigationItems: AdminNavigationItem[] = [
   { label: 'Attendance', icon: CalendarCheck2, path: '/attendance' },
   { label: 'Leave Requests', icon: ClipboardList, path: '/leaves' },
   { label: 'Task Updates', icon: ListTodo, path: '/admin/work-updates' },
-  { label: 'Calendar', icon: CalendarDays, path: '/admin/calendar' },
   { label: 'Profile & Settings', icon: UserRoundCog, path: '/admin/profile' },
 ];

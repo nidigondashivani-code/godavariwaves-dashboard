@@ -200,7 +200,7 @@ erDiagram
     Users ||--o{ AuditLogs : "actions traced"
 ```
 
-### Table Master Matrix (22 Tables)
+### Table Master Matrix (21 Tables)
 
 | # | Table Name | Key Constraints & Relations | Business Purpose |
 |---|------------|-----------------------------|------------------|
@@ -216,16 +216,15 @@ erDiagram
 | 10 | `LeaveTypes` | Casual, Sick, Emergency | Leave category policies. |
 | 11 | `LeaveBalances` | FK `employee_id`, FK `leave_type_id` | Running balance ledger. |
 | 12 | `LeaveRequests` | FK `employee_id`, FK `actioned_by` | Leave application lifecycle. |
-| 13 | `Holidays` | UNIQUE(`date`), Holiday Name | Company holiday calendar. |
-| 14 | `CalendarEvents` | FK `department_id`, FK `created_by` | Master scheduling calendar. |
-| 15 | `Tasks` | FK `created_by` -> `Users` | Task management master entity. |
-| 16 | `TaskAssignments` | FK `task_id`, FK `employee_id` | Eligible role task assignment. |
-| 17 | `TaskUpdates` | FK `task_id`, FK `employee_id` | Progress notes & developer updates. |
-| 18 | `PerformanceReviews` | FK `employee_id`, FK `reviewer_id` | Appraisal scores & feedback. |
-| 19 | `Notifications` | FK `user_id`, Priority, Category | Real-time notification store. |
-| 20 | `EmployeeHistory` | FK `employee_id`, Event Type, JSON diff | Immutable lifecycle audit trail. |
-| 21 | `AuditLogs` | FK `user_id`, IP, Action, Entity | System compliance log. |
-| 22 | `Settings` | Key-Value pairs, Type Enums | Dynamic office policy settings. |
+| 13 | `Holidays` | UNIQUE(`date`), Holiday Name | Official company holidays. |
+| 14 | `Tasks` | FK `created_by` -> `Users` | Task management master entity. |
+| 15 | `TaskAssignments` | FK `task_id`, FK `employee_id` | Eligible role task assignment. |
+| 16 | `TaskUpdates` | FK `task_id`, FK `employee_id` | Progress notes & developer updates. |
+| 17 | `PerformanceReviews` | FK `employee_id`, FK `reviewer_id` | Appraisal scores & feedback. |
+| 18 | `Notifications` | FK `user_id`, Priority, Category | Real-time notification store. |
+| 19 | `EmployeeHistory` | FK `employee_id`, Event Type, JSON diff | Immutable lifecycle audit trail. |
+| 20 | `AuditLogs` | FK `user_id`, IP, Action, Entity | System compliance log. |
+| 21 | `Settings` | Key-Value pairs, Type Enums | Dynamic office policy settings. |
 
 ---
 

@@ -8,12 +8,6 @@ export interface DashboardMetrics {
   pendingTaskUpdates: number;
 }
 
-export interface Holiday {
-  name: string;
-  date: string;
-  description?: string;
-}
-
 export interface Birthday {
   id: string;
   name: string;

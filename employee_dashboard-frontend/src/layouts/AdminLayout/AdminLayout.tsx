@@ -32,11 +32,9 @@ function AdminLayout({ children }: AdminLayoutProps) {
           ? 'Employee Directory'
           : location.pathname === '/roles'
             ? 'Role & Permissions'
-            : location.pathname === '/admin/calendar'
-              ? 'Calendar'
-              : location.pathname === '/admin/profile'
-                ? 'Profile & Settings'
-                : dashboardNavigation;
+            : location.pathname === '/admin/profile'
+              ? 'Profile & Settings'
+              : dashboardNavigation;
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -67,11 +65,6 @@ function AdminLayout({ children }: AdminLayoutProps) {
 
     if (label === 'Task Updates') {
       navigate('/admin/work-updates');
-      return;
-    }
-
-    if (label === 'Calendar') {
-      navigate('/admin/calendar');
       return;
     }
 

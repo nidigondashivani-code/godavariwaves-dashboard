@@ -8,7 +8,7 @@ import {
   NotificationSettings,
 } from '../types/notification.types';
 
-const STORAGE_KEY = 'ems_notifications_clean_v1';
+const STORAGE_KEY = 'ems_notifications_clean_v2';
 const SETTINGS_KEY = 'ems_notifications_settings_v1';
 const LEGACY_SIMULATED_NOTIFICATION_TITLES = new Set([
   'New Employee Profile Created',
@@ -44,7 +44,9 @@ class NotificationService {
 
   private loadFromStorage(): void {
     try {
-      localStorage.removeItem("ems_notifications_v1");
+      localStorage.removeItem('ems_notifications_v1');
+      localStorage.removeItem('ems_notifications_clean_v1');
+      localStorage.removeItem('ems_notifications_simulated_v1');
       const stored = localStorage.getItem(STORAGE_KEY);
       const parsed: unknown = stored ? JSON.parse(stored) : [];
       const notifications = Array.isArray(parsed) ? (parsed as NotificationItem[]) : [];

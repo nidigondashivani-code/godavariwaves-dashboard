@@ -65,14 +65,6 @@ export const APP_MODULES: ModuleDefinition[] = [
     supportedActions: ALL_PERMISSION_ACTIONS,
   },
   {
-    id: 'mod-calendar',
-    name: 'Calendar',
-    category: 'Time & Attendance',
-    description: 'Company events, team meetings, milestones, and shared schedules.',
-    iconName: 'Calendar',
-    supportedActions: ALL_PERMISSION_ACTIONS,
-  },
-  {
     id: 'mod-task',
     name: 'Task Management',
     category: 'Workforce & Productivity',
@@ -220,18 +212,6 @@ export const buildDefaultEmployeePermissions = (): RolePermissionsMap => {
 
   // Holiday Configuration: View calendar
   map['Holiday Configuration'] = {
-    View: true,
-    Create: false,
-    Edit: false,
-    Delete: false,
-    Export: false,
-    Approve: false,
-    Reject: false,
-    Assign: false,
-  };
-
-  // Calendar: View events
-  map['Calendar'] = {
     View: true,
     Create: false,
     Edit: false,
