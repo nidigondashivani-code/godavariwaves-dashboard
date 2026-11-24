@@ -246,7 +246,7 @@ export const EmployeeDashboardPage: React.FC = () => {
     {
       title: 'Unread Notifications',
       valueDisplay: `${notifications.unreadCount}`,
-      description: 'Recent portal alerts',
+      description: 'Leave decisions & alerts',
       icon: Bell,
       tone: 'blue',
       to: '/employee/notifications',

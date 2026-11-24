@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, ExternalLink, Check } from 'lucide-react';
+import { Bell, CheckCheck, ExternalLink, Check, CheckCircle2, XCircle } from 'lucide-react';
 import { apiClient, extractApiError } from '../../../api/apiClient';
 import { useToast } from '../../../providers/ToastProvider';
 import {
@@ -107,12 +107,10 @@ export const EmployeeNotificationsPage: React.FC = () => {
           className="gw-input w-auto min-w-[180px]"
         >
           <option value="All">All Categories</option>
+          <option value="Leave">Leave Approvals &amp; Rejections</option>
           <option value="Attendance">Attendance</option>
-          <option value="AttendanceCorrection">Attendance Correction</option>
-          <option value="Leave">Leave</option>
           <option value="Task">Tasks</option>
           <option value="WorkUpdate">Work Updates</option>
-          <option value="Announcement">Announcements</option>
           <option value="Profile">Profile</option>
         </select>
       </Card>
@@ -134,9 +132,19 @@ export const EmployeeNotificationsPage: React.FC = () => {
                 }`}
               >
                 <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#2563EB]" />}
                     <StatusBadge status={n.category} />
+                    {n.title.toLowerCase().includes('approved') && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]">
+                        <CheckCircle2 className="w-3 h-3" /> Approved
+                      </span>
+                    )}
+                    {n.title.toLowerCase().includes('rejected') && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]">
+                        <XCircle className="w-3 h-3" /> Rejected
+                      </span>
+                    )}
                     <span className="text-[12px] text-[#9CA3AF]">
                       {new Date(n.createdAt).toLocaleString()}
                     </span>

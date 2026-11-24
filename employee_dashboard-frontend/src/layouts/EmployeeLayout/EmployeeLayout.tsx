@@ -16,6 +16,8 @@ import {
   Search,
   Briefcase,
   Check,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import CompanyLogo from '../../components/common/CompanyLogo';
 import { useAuth } from '../../context/AuthContext';
@@ -509,14 +511,24 @@ export const EmployeeLayout: React.FC = () => {
                           >
                             <span
                               className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                                idx % 3 === 0
-                                  ? 'bg-blue-50 text-blue-600'
-                                  : idx % 3 === 1
-                                    ? 'bg-amber-50 text-amber-600'
-                                    : 'bg-violet-50 text-violet-600'
+                                notification.title.toLowerCase().includes('approved')
+                                  ? 'bg-emerald-50 text-emerald-600'
+                                  : notification.title.toLowerCase().includes('rejected')
+                                    ? 'bg-rose-50 text-rose-600'
+                                    : idx % 3 === 0
+                                      ? 'bg-blue-50 text-blue-600'
+                                      : idx % 3 === 1
+                                        ? 'bg-amber-50 text-amber-600'
+                                        : 'bg-violet-50 text-violet-600'
                               }`}
                             >
-                              <Bell aria-hidden="true" className="h-4 w-4" />
+                              {notification.title.toLowerCase().includes('approved') ? (
+                                <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+                              ) : notification.title.toLowerCase().includes('rejected') ? (
+                                <XCircle aria-hidden="true" className="h-4 w-4" />
+                              ) : (
+                                <Bell aria-hidden="true" className="h-4 w-4" />
+                              )}
                             </span>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-slate-800">{notification.title}</p>
