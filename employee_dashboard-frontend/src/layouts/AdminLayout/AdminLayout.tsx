@@ -22,11 +22,19 @@ function AdminLayout({ children }: AdminLayoutProps) {
     }
   }, [location.pathname, locationState?.activeNavigation]);
 
-  const activeNavigation = location.pathname === '/admin/calendar'
-    ? 'Calendar'
-    : location.pathname === '/admin/profile'
-      ? 'Profile & Settings'
-      : dashboardNavigation;
+  const activeNavigation = location.pathname === '/admin/work-updates'
+    ? 'Task Updates'
+    : location.pathname === '/attendance'
+      ? 'Attendance'
+      : location.pathname === '/leaves' || location.pathname === '/leave'
+        ? 'Leave Requests'
+        : location.pathname === '/employees'
+          ? 'Employee Directory'
+          : location.pathname === '/roles'
+            ? 'Role & Permissions'
+            : location.pathname === '/admin/profile'
+              ? 'Profile & Settings'
+              : dashboardNavigation;
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -35,13 +43,42 @@ function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const handleSelectNavigation = (label: string) => {
-    if (label === 'Calendar') {
-      navigate('/admin/calendar');
+    if (label === 'Employee Directory' || label === 'Employee Management') {
+      navigate('/employees');
+      return;
+    }
+
+    if (label === 'Role & Permissions') {
+      navigate('/roles');
+      return;
+    }
+
+    if (label === 'Attendance') {
+      navigate('/attendance');
+      return;
+    }
+
+    if (label === 'Leave Requests') {
+      navigate('/leaves');
+      return;
+    }
+
+    if (label === 'Task Updates') {
+      navigate('/admin/work-updates');
       return;
     }
 
     if (label === 'Profile & Settings') {
       navigate('/admin/profile');
+      return;
+    }
+
+    if (label === 'Dashboard Overview') {
+      if (location.pathname !== '/admin') {
+        navigate('/admin');
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return;
     }
 
@@ -57,10 +94,6 @@ function AdminLayout({ children }: AdminLayoutProps) {
       'Employee Management': 'workforce-overview',
       'Attendance': 'workforce-overview',
       'Leave Requests': 'pending-requests',
-      'Attendance Corrections': 'pending-requests',
-      'Profile Requests': 'pending-requests',
-      'Task Updates': 'pending-requests',
-      'Announcements': 'announcements',
     };
     const sectionId = navSectionMap[label];
     if (sectionId) {

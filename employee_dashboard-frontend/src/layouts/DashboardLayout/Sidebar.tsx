@@ -4,7 +4,9 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  LayoutDashboard,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -12,7 +14,7 @@ interface SidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   activeNav?: string;
-  onNavigate?: (nav: 'employees' | 'roles') => void;
+  onNavigate?: (nav: 'employees' | 'roles' | 'leaves' | 'attendance') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -23,6 +25,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeNav = 'roles',
   onNavigate,
 }) => {
+  const navigate = useNavigate();
+
+  const handleNavClick = (
+    dest: 'employees' | 'roles' | 'leaves' | 'attendance' | 'admin',
+    path: string
+  ) => {
+    if (dest === 'admin') {
+      navigate('/admin');
+    } else if (onNavigate) {
+      onNavigate(dest);
+    } else {
+      navigate(path);
+    }
+    onCloseMobile();
+  };
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -43,7 +61,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Company Brand Logo & Header */}
         <div className="h-18 flex items-center justify-between px-4 py-3 border-b border-blue-800/60 bg-[#172554]">
-          <div className="flex items-center gap-3 overflow-hidden flex-1">
+          <div
+            className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer"
+            onClick={() => navigate('/admin')}
+            title="Go to Admin Dashboard"
+          >
             {!collapsed ? (
               <div className="bg-white px-2.5 py-1.5 rounded-xl shadow-md flex items-center justify-center border border-white/20">
                 <img
@@ -72,8 +94,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Navigation Items (Focused ONLY on Employee Management) */}
+        {/* Navigation Items */}
         <div className="flex-1 overflow-y-auto px-3 py-6 space-y-6">
+          {/* Main Dashboard Link */}
+          <div>
+            <button
+              type="button"
+              onClick={() => handleNavClick('admin', '/admin')}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-blue-100 hover:text-white hover:bg-[#2563EB] transition-all group"
+            >
+              <LayoutDashboard className="w-4 h-4 shrink-0 text-blue-300 group-hover:text-white" />
+              {!collapsed && <span className="truncate">Admin Dashboard</span>}
+            </button>
+          </div>
+
+          {/* 1. Core HR Management */}
           <div>
             {!collapsed && (
               <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-blue-300/80 mb-2">
@@ -84,10 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-1.5">
               <button
                 type="button"
-                onClick={() => {
-                  onNavigate?.('employees');
-                  onCloseMobile();
-                }}
+                onClick={() => handleNavClick('employees', '/employees')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group ${
                   activeNav === 'employees'
                     ? 'bg-[#DBEAFE] text-[#1E3A8A] shadow-xs'
@@ -100,10 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 type="button"
-                onClick={() => {
-                  onNavigate?.('roles');
-                  onCloseMobile();
-                }}
+                onClick={() => handleNavClick('roles', '/roles')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group ${
                   activeNav === 'roles'
                     ? 'bg-[#DBEAFE] text-[#1E3A8A] shadow-xs'
@@ -115,6 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
           </div>
+
         </div>
       </aside>
     </>

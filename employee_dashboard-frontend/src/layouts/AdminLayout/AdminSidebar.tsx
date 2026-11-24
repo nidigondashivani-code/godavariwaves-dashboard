@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -26,6 +28,28 @@ function AdminSidebar({
   activeItem,
   onSelectNavigation,
 }: AdminSidebarProps) {
+  const isEmployeeManagementActive =
+    activeItem === 'Employee Management' ||
+    activeItem === 'Employee Directory' ||
+    activeItem === 'Role & Permissions';
+
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    'Employee Management': isEmployeeManagementActive,
+  });
+
+  useEffect(() => {
+    if (isEmployeeManagementActive) {
+      setExpandedMenus((prev) => ({ ...prev, 'Employee Management': true }));
+    }
+  }, [isEmployeeManagementActive]);
+
+  const toggleSubMenu = (label: string) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
+
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col border-r border-blue-950/20 bg-[#1E3A8A] text-white transition-all duration-300 lg:translate-x-0 ${
@@ -74,37 +98,131 @@ function AdminSidebar({
         )}
       </div>
 
-      <nav aria-label="Admin navigation" className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
+      <nav aria-label="Admin navigation" className="flex-1 space-y-1.5 overflow-y-auto px-3 py-6">
         <p className={`mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-blue-200/70 ${collapsed ? 'lg:hidden' : ''}`}>
           Workspace
         </p>
-        {adminNavigationItems.map(({ label, icon: Icon }) => {
-          const isActive = activeItem === label;
+        {adminNavigationItems.map((item) => {
+          const hasSubItems = Boolean(item.subItems && item.subItems.length > 0);
+          const isItemActive =
+            activeItem === item.label ||
+            (hasSubItems && item.subItems?.some((sub) => sub.label === activeItem));
+          const isExpanded = Boolean(expandedMenus[item.label]);
 
+          if (hasSubItems) {
+            return (
+              <div key={item.label} className="space-y-1">
+                <button
+                  aria-expanded={isExpanded}
+                  className={`group flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition duration-150 ${
+                    isItemActive
+                      ? 'bg-white/15 text-white shadow-sm shadow-blue-950/20 ring-1 ring-inset ring-white/10'
+                      : 'text-blue-100/80 hover:bg-white/10 hover:text-white'
+                  } ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+                  onClick={() => {
+                    if (collapsed) {
+                      onSelectNavigation(item.subItems![0].label);
+                      onCloseMobile();
+                    } else {
+                      if (!isEmployeeManagementActive) {
+                        onSelectNavigation(item.subItems![0].label);
+                        setExpandedMenus((prev) => ({ ...prev, [item.label]: true }));
+                        onCloseMobile();
+                      } else {
+                        toggleSubMenu(item.label);
+                      }
+                    }
+                  }}
+                  title={collapsed ? item.label : undefined}
+                  type="button"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <item.icon
+                      aria-hidden="true"
+                      className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+                        isItemActive ? 'text-white' : 'text-blue-200 group-hover:text-white'
+                      }`}
+                      strokeWidth={1.9}
+                    />
+                    <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+                  </div>
+
+                  {!collapsed && (
+                    <ChevronDown
+                      aria-hidden="true"
+                      className={`h-4 w-4 shrink-0 text-blue-300 transition-transform duration-200 ${
+                        isExpanded ? 'rotate-180 text-white' : 'group-hover:text-white'
+                      }`}
+                    />
+                  )}
+                </button>
+
+                {/* Sub-modules for Employee Management (Employee Directory & Role & Permissions) */}
+                {isExpanded && !collapsed && (
+                  <div className="ml-4 space-y-1 border-l-2 border-white/20 pl-2.5 pt-1 animate-fadeIn">
+                    {item.subItems!.map((subItem) => {
+                      const isSubActive = activeItem === subItem.label;
+                      return (
+                        <button
+                          key={subItem.label}
+                          aria-current={isSubActive ? 'page' : undefined}
+                          className={`group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[12px] font-medium transition duration-150 ${
+                            isSubActive
+                              ? 'bg-white/25 text-white font-semibold shadow-xs ring-1 ring-inset ring-white/20'
+                              : 'text-blue-100/70 hover:bg-white/10 hover:text-white'
+                          }`}
+                          onClick={() => {
+                            onSelectNavigation(subItem.label);
+                            onCloseMobile();
+                          }}
+                          type="button"
+                        >
+                          <subItem.icon
+                            aria-hidden="true"
+                            className={`h-4 w-4 shrink-0 transition-colors ${
+                              isSubActive ? 'text-white' : 'text-blue-200 group-hover:text-white'
+                            }`}
+                            strokeWidth={2}
+                          />
+                          <span className="truncate">{subItem.label}</span>
+                          {isSubActive && (
+                            <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Single regular navigation item
+          const isActive = activeItem === item.label;
           return (
             <button
+              key={item.label}
               aria-current={isActive ? 'page' : undefined}
               className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition duration-150 ${
                 isActive
                   ? 'bg-white/15 text-white shadow-sm shadow-blue-950/20 ring-1 ring-inset ring-white/10'
                   : 'text-blue-100/80 hover:bg-white/10 hover:text-white'
               } ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
-              key={label}
               onClick={() => {
-                onSelectNavigation(label);
+                onSelectNavigation(item.label);
                 onCloseMobile();
               }}
-              title={collapsed ? label : undefined}
+              title={collapsed ? item.label : undefined}
               type="button"
             >
-              <Icon
+              <item.icon
                 aria-hidden="true"
                 className={`h-[18px] w-[18px] shrink-0 transition-colors ${
                   isActive ? 'text-white' : 'text-blue-200 group-hover:text-white'
                 }`}
                 strokeWidth={1.9}
               />
-              <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
+              <span className={collapsed ? 'lg:hidden' : ''}>{item.label}</span>
               {isActive && !collapsed && (
                 <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
               )}

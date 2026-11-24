@@ -23,7 +23,6 @@ export type AppModule =
   | 'Attendance Correction'
   | 'Leave Management'
   | 'Holiday Configuration'
-  | 'Calendar'
   | 'Task Management'
   | 'Work Updates'
   | 'Performance Review'

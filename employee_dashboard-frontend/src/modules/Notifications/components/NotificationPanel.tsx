@@ -8,7 +8,6 @@ import {
   Filter,
   RotateCcw,
   BellOff,
-  Sparkles,
 } from 'lucide-react';
 import {
   NotificationCategory,
@@ -119,10 +118,6 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
 
   const handleMarkAllAsRead = () => {
     notificationService.markAllAsRead();
-  };
-
-  const handleSimulate = (cat: NotificationCategory) => {
-    notificationService.simulateEvent(cat);
   };
 
   if (!isOpen) return null;
@@ -332,9 +327,9 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
               <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-300 mb-3 shadow-xs">
                 <BellOff className="w-6 h-6" />
               </div>
-              <h4 className="text-xs font-bold text-slate-800">No new notifications.</h4>
+              <h4 className="text-xs font-bold text-slate-800">No notifications found.</h4>
               <p className="text-[11px] text-slate-400 max-w-xs mt-1 mb-4 leading-relaxed">
-                You are all caught up! No alerts match your current tab and filter criteria.
+                There are no notifications matching your current filters.
               </p>
               <button
                 type="button"
@@ -343,12 +338,11 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
                   setTimeFilter('all');
                   setCategoryFilter('all');
                   setActiveTab('all');
-                  notificationService.resetToDefaultSeed();
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Notifications</span>
+                <span>Reset Filters</span>
               </button>
             </div>
           ) : (
@@ -379,15 +373,6 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
             >
               Clear All
             </button>
-            <span>&bull;</span>
-            <button
-              type="button"
-              onClick={() => handleSimulate('attendance')}
-              className="text-[11px] text-blue-600 hover:text-blue-800 transition font-bold inline-flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3 text-purple-600" />
-              Simulate Alert
-            </button>
           </div>
         </div>
       </div>
@@ -404,7 +389,6 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
       <NotificationSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        onSimulate={handleSimulate}
       />
     </>
   );
