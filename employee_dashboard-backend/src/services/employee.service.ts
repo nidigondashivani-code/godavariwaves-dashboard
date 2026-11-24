@@ -565,7 +565,7 @@ export class EmployeeService {
         },
         order: [['published_at', 'DESC']],
         limit: 5,
-      }),
+      }).catch(() => []),
       Holiday.findAll({
         where: { date: { [Op.gte]: today } },
         order: [['date', 'ASC']],
@@ -581,7 +581,7 @@ export class EmployeeService {
         },
         order: [['start_date', 'ASC']],
         limit: 5,
-      }),
+      }).catch(() => []),
       Notification.findAll({
         where: { user_id: userId },
         order: [['createdAt', 'DESC']],
@@ -713,7 +713,7 @@ export class EmployeeService {
         where: { status: 'Published' },
         order: [['published_at', 'DESC']],
         limit: 5,
-      }),
+      }).catch(() => []),
       Employee.findAll({
         where: { employment_status: 'Active', is_deleted: false, date_of_birth: { [Op.ne]: null } },
         attributes: ['id', 'full_name', 'date_of_birth'],
