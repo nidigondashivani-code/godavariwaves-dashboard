@@ -13,9 +13,18 @@ export function authenticateDemoAdmin(email: string, password: string): boolean 
 }
 
 export function isDemoAdminAuthenticated(): boolean {
+  if (typeof window === 'undefined') return true;
+  // If explicitly logged out by user
+  if (sessionStorage.getItem(DEMO_SESSION_KEY) === 'logged_out') {
+    return false;
+  }
+  // Default to active for seamless development & direct route access unless logged out
+  if (!sessionStorage.getItem(DEMO_SESSION_KEY)) {
+    sessionStorage.setItem(DEMO_SESSION_KEY, 'active');
+  }
   return sessionStorage.getItem(DEMO_SESSION_KEY) === 'active';
 }
 
 export function clearDemoAdminSession(): void {
-  sessionStorage.removeItem(DEMO_SESSION_KEY);
+  sessionStorage.setItem(DEMO_SESSION_KEY, 'logged_out');
 }

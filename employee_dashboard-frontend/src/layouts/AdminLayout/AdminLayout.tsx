@@ -35,6 +35,21 @@ function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const handleSelectNavigation = (label: string) => {
+    if (label === 'Employee Management') {
+      navigate('/employees');
+      return;
+    }
+
+    if (label === 'Attendance') {
+      navigate('/attendance');
+      return;
+    }
+
+    if (label === 'Leave Requests') {
+      navigate('/leaves');
+      return;
+    }
+
     if (label === 'Calendar') {
       navigate('/admin/calendar');
       return;
@@ -42,6 +57,15 @@ function AdminLayout({ children }: AdminLayoutProps) {
 
     if (label === 'Profile & Settings') {
       navigate('/admin/profile');
+      return;
+    }
+
+    if (label === 'Dashboard Overview') {
+      if (location.pathname !== '/admin') {
+        navigate('/admin');
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return;
     }
 
