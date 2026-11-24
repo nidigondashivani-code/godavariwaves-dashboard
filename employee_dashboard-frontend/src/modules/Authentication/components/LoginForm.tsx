@@ -78,7 +78,7 @@ function LoginForm() {
   };
 
   return (
-    <form className="space-y-4" noValidate onSubmit={handleSubmit}>
+    <form className="space-y-4" noValidate autoComplete="off" onSubmit={handleSubmit}>
       <div>
         <label htmlFor="company-email" className="mb-1.5 block text-[13px] font-medium text-slate-700">
           Company Email
@@ -86,7 +86,7 @@ function LoginForm() {
         <div className="relative">
           <Mail aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
           <input
-            autoComplete="email"
+            autoComplete="off"
             className={`h-12 w-full rounded-xl border bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 sm:h-11 sm:text-[13px] ${
               errors.email ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 hover:border-slate-300'
             }`}
@@ -115,7 +115,7 @@ function LoginForm() {
         <div className="relative">
           <LockKeyhole aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
           <input
-            autoComplete="current-password"
+            autoComplete="new-password"
             className={`h-12 w-full rounded-xl border bg-white pl-11 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 sm:h-11 sm:text-[13px] ${
               errors.password ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 hover:border-slate-300'
             }`}
@@ -184,24 +184,6 @@ function LoginForm() {
           </>
         )}
       </button>
-
-      <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-slate-600">
-        <div>
-          <p className="font-semibold text-slate-800">Admin Credentials</p>
-          <p className="mt-0.5 text-[11px] text-slate-500">admin@godavariwaves.com / Admin@123</p>
-        </div>
-        <button
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-blue-700"
-          onClick={() => {
-            setEmail('admin@godavariwaves.com');
-            setPassword('Admin@123');
-            setAuthError('');
-          }}
-          type="button"
-        >
-          Auto-fill
-        </button>
-      </div>
     </form>
   );
 }
