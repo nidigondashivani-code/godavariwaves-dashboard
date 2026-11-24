@@ -9,7 +9,6 @@ import {
   LogIn,
   LogOut,
   Bell,
-  ChevronRight,
   ClipboardList,
   Timer,
   Sparkles,
@@ -18,14 +17,12 @@ import type { LucideIcon } from 'lucide-react';
 import { apiClient, extractApiError } from '../../../api/apiClient';
 import { useToast } from '../../../providers/ToastProvider';
 import {
-  StatusBadge,
   LoadingSpinner,
   Button,
 } from '../../../components/common/UI';
 import type {
   AttendanceRecord,
   LeaveBalanceItem,
-  TaskItem,
   NotificationItem,
 } from '../../../types/user.types';
 
@@ -48,7 +45,6 @@ interface DashboardData {
     pendingWorkUpdatesCount: number;
   };
   todayAttendance: AttendanceRecord | null;
-  todayTasks: TaskItem[];
   leaveOverview: {
     balances: LeaveBalanceItem[];
     pendingRequestsCount: number;
@@ -146,7 +142,6 @@ export const EmployeeDashboardPage: React.FC = () => {
       pendingWorkUpdatesCount: 0,
     },
     todayAttendance: null,
-    todayTasks: [],
     leaveOverview: {
       balances: [],
       pendingRequestsCount: 0,
@@ -161,7 +156,6 @@ export const EmployeeDashboardPage: React.FC = () => {
     employee,
     summary,
     todayAttendance,
-    todayTasks,
     leaveOverview,
     notifications,
   } = data || emptyData;
@@ -391,146 +385,88 @@ export const EmployeeDashboardPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Section 3: Today's Attendance & Leave (col-span-4) + Assigned Tasks (col-span-8) — exact Admin lg:grid-cols-12 gap-4 */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-4">
-          <section className="scroll-mt-24 h-full rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Today&apos;s Attendance</p>
-                <p className="mt-1 text-xs text-slate-500">Live shift &amp; leave balances</p>
-              </div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                <Clock3 aria-hidden="true" className="h-[19px] w-[19px]" />
-              </span>
+      {/* Section 3: Today's Attendance & Leave Balances (Balanced 2-Column Grid) */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="scroll-mt-24 h-full rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Today&apos;s Attendance</p>
+              <p className="mt-1 text-xs text-slate-500">Live shift &amp; attendance status</p>
             </div>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <Clock3 aria-hidden="true" className="h-[19px] w-[19px]" />
+            </span>
+          </div>
 
-            <div className="mt-5 grid grid-cols-3 gap-2.5">
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                <p className="text-[11px] font-medium text-slate-500">Clock In</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {formatTime(todayAttendance?.clock_in)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                <p className="text-[11px] font-medium text-slate-500">Clock Out</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {formatTime(todayAttendance?.clock_out)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                <p className="text-[11px] font-medium text-slate-500">Status</p>
-                <p className="mt-1 truncate text-sm font-semibold text-blue-600">
-                  {todayAttendance?.status || summary.todayAttendanceStatus}
-                </p>
-              </div>
+          <div className="mt-5 grid grid-cols-3 gap-2.5">
+            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <p className="text-[11px] font-medium text-slate-500">Clock In</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {formatTime(todayAttendance?.clock_in)}
+              </p>
             </div>
-
-            <div className="mt-5 border-t border-slate-100 pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                  Leave Balances
-                </p>
-                <button
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-                  onClick={() => navigate('/employee/leaves')}
-                  type="button"
-                >
-                  Apply leave
-                </button>
-              </div>
-              {leaveOverview.balances.length > 0 ? (
-                <ul className="divide-y divide-slate-100">
-                  {leaveOverview.balances.map((b) => (
-                    <li className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0" key={b.id}>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-800">
-                          {b.leaveType?.name || 'Leave'}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-slate-500">
-                          Used {b.used_days} · Allocated {b.allocated_days}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                        {b.remaining_days}d left
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="flex min-h-[90px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 text-center">
-                  <Sparkles aria-hidden="true" className="h-5 w-5 text-slate-400" />
-                  <p className="mt-2 text-xs font-medium text-slate-600">No leave balances available</p>
-                </div>
-              )}
+            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <p className="text-[11px] font-medium text-slate-500">Clock Out</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {formatTime(todayAttendance?.clock_out)}
+              </p>
             </div>
-          </section>
-        </div>
-
-        <div className="lg:col-span-8">
-          <section className="scroll-mt-24 h-full rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Assigned Tasks</p>
-                <p className="mt-1 text-xs text-slate-500">Active deliverables &amp; due dates</p>
-              </div>
-              <button
-                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-slate-50 hover:text-blue-700"
-                onClick={() => navigate('/employee/tasks')}
-                type="button"
-              >
-                View all
-                <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
-              </button>
+            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <p className="text-[11px] font-medium text-slate-500">Status</p>
+              <p className="mt-1 truncate text-sm font-semibold text-blue-600">
+                {todayAttendance?.status || summary.todayAttendanceStatus}
+              </p>
             </div>
+          </div>
 
-            {todayTasks.length > 0 ? (
-              <ul className="mt-5 divide-y divide-slate-100">
-                {todayTasks.map((task) => (
-                  <li
-                    className="group flex cursor-pointer flex-col gap-3 py-3.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
-                    key={task.id}
-                    onClick={() => navigate('/employee/tasks')}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-slate-800 group-hover:text-blue-700">
-                          {task.title}
-                        </p>
-                        <StatusBadge status={task.priority} />
-                        <StatusBadge status={task.status} />
-                      </div>
-                      <div className="mt-2.5 flex items-center gap-3">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className="h-full rounded-full bg-blue-600 transition-all"
-                            style={{ width: `${task.progress}%` }}
-                          />
-                        </div>
-                        <span className="w-9 text-right text-[11px] font-semibold text-slate-600">
-                          {task.progress}%
-                        </span>
-                      </div>
+          <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500">
+            <span>Working Hours: <strong className="text-slate-800">{Number(todayAttendance?.working_hours || summary.workingHours || 0).toFixed(1)}h</strong></span>
+            <span>Late Minutes: <strong className="text-slate-800">{todayAttendance?.late_minutes || 0}m</strong></span>
+          </div>
+        </section>
+
+        <section className="scroll-mt-24 h-full rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Leave Balances</p>
+              <p className="mt-1 text-xs text-slate-500">Available allowance across leave types</p>
+            </div>
+            <button
+              className="inline-flex items-center gap-1 rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+              onClick={() => navigate('/employee/leaves')}
+              type="button"
+            >
+              Apply leave
+            </button>
+          </div>
+
+          <div className="mt-5">
+            {leaveOverview.balances.length > 0 ? (
+              <ul className="divide-y divide-slate-100">
+                {leaveOverview.balances.map((b) => (
+                  <li className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0" key={b.id}>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-800">
+                        {b.leaveType?.name || 'Leave'}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        Used {b.used_days} · Allocated {b.allocated_days}
+                      </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-slate-500">
-                      Due {task.due_date}
+                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                      {b.remaining_days}d left
                     </span>
-                    <ChevronRight
-                      aria-hidden="true"
-                      className="hidden h-4 w-4 text-slate-300 transition group-hover:text-blue-500 sm:block"
-                    />
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="mt-5 flex min-h-[155px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 text-center">
-                <CheckSquare aria-hidden="true" className="h-6 w-6 text-slate-300" />
-                <p className="mt-2 text-sm font-medium text-slate-600">No pending tasks assigned</p>
-                <p className="mt-1 text-xs text-slate-400">Assigned tasks will appear here.</p>
+              <div className="flex min-h-[90px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 text-center">
+                <Sparkles aria-hidden="true" className="h-5 w-5 text-slate-400" />
+                <p className="mt-2 text-xs font-medium text-slate-600">No leave balances available</p>
               </div>
             )}
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   );
