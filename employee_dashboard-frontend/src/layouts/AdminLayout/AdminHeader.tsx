@@ -39,14 +39,25 @@ interface DashboardSearchResult {
 }
 
 const dashboardSearchResults: DashboardSearchResult[] = [
-  ...adminNavigationItems.map(({ label, icon }) => ({
-    label,
-    icon,
-    activeNavigation: label,
-    ...(label === 'Dashboard Overview' ? { sectionId: 'dashboard-overview' } : {}),
-    ...(label === 'Employee Management' || label === 'Attendance' ? { sectionId: 'workforce-overview' } : {}),
-    ...(label === 'Leave Requests' ? { sectionId: 'pending-requests' } : {}),
-  })),
+  ...adminNavigationItems.flatMap((item) => {
+    const parent: DashboardSearchResult = {
+      label: item.label,
+      icon: item.icon,
+      activeNavigation: item.label,
+      ...(item.label === 'Dashboard Overview' ? { sectionId: 'dashboard-overview' } : {}),
+      ...(item.label === 'Employee Management' || item.label === 'Attendance' ? { sectionId: 'workforce-overview' } : {}),
+      ...(item.label === 'Leave Requests' ? { sectionId: 'pending-requests' } : {}),
+    };
+    if (item.subItems) {
+      const subs: DashboardSearchResult[] = item.subItems.map((sub) => ({
+        label: sub.label,
+        icon: sub.icon,
+        activeNavigation: sub.label,
+      }));
+      return [parent, ...subs];
+    }
+    return [parent];
+  }),
   { label: 'Total Employees', icon: UsersRound, activeNavigation: 'Employee Management', sectionId: 'module-total-employees' },
   { label: 'Present Today', icon: UserCheck, activeNavigation: 'Attendance', sectionId: 'module-present-today' },
   { label: 'Absent Today', icon: UserX, activeNavigation: 'Attendance', sectionId: 'module-absent-today' },

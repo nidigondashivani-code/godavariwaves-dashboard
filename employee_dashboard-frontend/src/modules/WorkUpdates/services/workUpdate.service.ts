@@ -349,3 +349,4 @@ class WorkUpdateService {
 }
 
 export const workUpdateService = new WorkUpdateService();
+export default workUpdateService;

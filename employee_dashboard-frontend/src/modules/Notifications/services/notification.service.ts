@@ -1,17 +1,24 @@
 /**
  * Notification Center - Service & Reactive Store
- * Manages notification state, persistence, event subscriptions, and simulation.
+ * Manages notification state, persistence, subscriptions, and alert preferences.
  */
 
 import {
-  NotificationCategory,
   NotificationItem,
-  NotificationPriority,
   NotificationSettings,
 } from '../types/notification.types';
 
 const STORAGE_KEY = 'ems_notifications_clean_v1';
 const SETTINGS_KEY = 'ems_notifications_settings_v1';
+const LEGACY_SIMULATED_NOTIFICATION_TITLES = new Set([
+  'New Employee Profile Created',
+  'Employee Checked In: On-Time',
+  'Sick Leave Request Submitted',
+  'Task Assigned: Q4 Marketing Campaign',
+  'Department Scope Updated: Sales Pipeline',
+  'Security Audit: Admin Role Verified',
+  'Company Notice: Year-End Performance Appraisals',
+]);
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   soundEnabled: true,
@@ -26,9 +33,6 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   },
 };
 
-// Seed notifications representing a live enterprise HRMS
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
-
 class NotificationService {
   private notifications: NotificationItem[] = [];
   private settings: NotificationSettings = DEFAULT_SETTINGS;
@@ -42,20 +46,24 @@ class NotificationService {
     try {
       localStorage.removeItem("ems_notifications_v1");
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        this.notifications = JSON.parse(stored);
-      } else {
-        this.notifications = [...INITIAL_NOTIFICATIONS];
-        this.saveToStorage();
+      const parsed: unknown = stored ? JSON.parse(stored) : [];
+      const notifications = Array.isArray(parsed) ? (parsed as NotificationItem[]) : [];
+      this.notifications = notifications.filter(
+        (notification) =>
+          notification && !LEGACY_SIMULATED_NOTIFICATION_TITLES.has(notification.title)
+      );
+      if (!stored || this.notifications.length !== notifications.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications));
       }
 
       const storedSettings = localStorage.getItem(SETTINGS_KEY);
       if (storedSettings) {
         this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(storedSettings) };
       }
-    } catch {
-      this.notifications = [...INITIAL_NOTIFICATIONS];
+    } catch (error) {
+      this.notifications = [];
       this.settings = DEFAULT_SETTINGS;
+      console.error('Failed to load notifications from storage', error);
     }
   }
 
@@ -177,12 +185,6 @@ class NotificationService {
     this.notifyListeners();
   }
 
-  public resetToDefaultSeed(): void {
-    this.notifications = [...INITIAL_NOTIFICATIONS];
-    this.saveToStorage();
-    this.notifyListeners();
-  }
-
   public getSettings(): NotificationSettings {
     return { ...this.settings };
   }
@@ -192,81 +194,6 @@ class NotificationService {
     this.saveToStorage();
   }
 
-  /**
-   * Helper to simulate real-time notification events for demo & testing
-   */
-  public simulateEvent(category: NotificationCategory): NotificationItem {
-    const events: Record<
-      NotificationCategory,
-      Omit<NotificationItem, 'id' | 'timestamp' | 'isRead'>
-    > = {
-      employee: {
-        title: 'New Employee Profile Created',
-        description: 'New personnel record added for Engineering division. Credentials generated automatically.',
-        category: 'employee',
-        priority: 'medium',
-        employeeName: 'Kavya Raman',
-        department: 'Software Development',
-        actionUrl: '#employees',
-        actionLabel: 'View Directory',
-      },
-      attendance: {
-        title: 'Employee Checked In: On-Time',
-        description: 'Sarah Jenkins clocked in at 09:14 AM from Springfield remote workstation.',
-        category: 'attendance',
-        priority: 'low',
-        employeeName: 'Sarah Jenkins',
-        employeeId: 'EMP-001',
-        department: 'Software Development',
-      },
-      leave: {
-        title: 'Sick Leave Request Submitted',
-        description: 'Emily Davis submitted a sick leave request for 1 day due to seasonal illness.',
-        category: 'leave',
-        priority: 'high',
-        employeeName: 'Emily Davis',
-        employeeId: 'EMP-006',
-        department: 'Digital Marketing',
-        actionUrl: '#employees',
-        actionLabel: 'Review Leave',
-      },
-      task: {
-        title: 'Task Assigned: Q4 Marketing Campaign',
-        description: 'Alex Morgan assigned 3 new creative design deliverables for Godavari Wave website revamp.',
-        category: 'task',
-        priority: 'medium',
-        employeeName: 'Alex Morgan',
-        employeeId: 'EMP-009',
-        department: 'Digital Marketing',
-      },
-      department: {
-        title: 'Department Scope Updated: Sales Pipeline',
-        description: 'Enterprise Sales targets revised to 14 revenue pipelines for Q1 FY27.',
-        category: 'department',
-        priority: 'low',
-        department: 'Sales',
-        actionUrl: '#employees',
-        actionLabel: 'Inspect Directory',
-      },
-      role: {
-        title: 'Security Audit: Admin Role Verified',
-        description: 'Automated role access verification completed. 104 security permissions active.',
-        category: 'role',
-        priority: 'low',
-        department: 'Administration',
-        actionUrl: '#roles',
-      },
-      announcement: {
-        title: 'Company Notice: Year-End Performance Appraisals',
-        description: 'Annual performance evaluations begin next Monday across all 4 core departments.',
-        category: 'announcement',
-        priority: 'medium',
-        department: 'Administration',
-      },
-    };
-
-    return this.addNotification(events[category]);
-  }
 }
 
 export const notificationService = new NotificationService();

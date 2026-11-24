@@ -29,12 +29,14 @@ function AdminLayout({ children }: AdminLayoutProps) {
       : location.pathname === '/leaves' || location.pathname === '/leave'
         ? 'Leave Requests'
         : location.pathname === '/employees'
-          ? 'Employee Management'
-          : location.pathname === '/admin/calendar'
-            ? 'Calendar'
-            : location.pathname === '/admin/profile'
-              ? 'Profile & Settings'
-              : dashboardNavigation;
+          ? 'Employee Directory'
+          : location.pathname === '/roles'
+            ? 'Role & Permissions'
+            : location.pathname === '/admin/calendar'
+              ? 'Calendar'
+              : location.pathname === '/admin/profile'
+                ? 'Profile & Settings'
+                : dashboardNavigation;
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -43,8 +45,13 @@ function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const handleSelectNavigation = (label: string) => {
-    if (label === 'Employee Management') {
+    if (label === 'Employee Directory' || label === 'Employee Management') {
       navigate('/employees');
+      return;
+    }
+
+    if (label === 'Role & Permissions') {
+      navigate('/roles');
       return;
     }
 

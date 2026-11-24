@@ -8,7 +8,7 @@ import LoginPage from '../modules/Authentication/pages/LoginPage';
 import ManageEmployeesPage from '../modules/Employee/pages/ManageEmployeesPage';
 import RolePermissionsPage from '../modules/RolePermissions/pages/RolePermissionsPage';
 import DepartmentsPage from '../modules/Departments/pages/DepartmentsPage';
-import DashboardLayout from '../layouts/DashboardLayout/DashboardLayout';
+import AdminLayout from '../layouts/AdminLayout/AdminLayout';
 import AttendanceLayout from '../modules/Attendance/layouts/AttendanceLayout';
 import AdminAttendancePage from '../modules/Attendance/pages/AdminAttendancePage';
 import LeaveLayout from '../modules/LeaveManagement/layouts/LeaveLayout';
@@ -27,33 +27,33 @@ function AppRoutes() {
           <Route element={<CompanyCalendarPage />} path="/admin/calendar" />
           <Route element={<AdminProfileSettingsPage />} path="/admin/profile" />
 
-          {/* Core HR Management Modules */}
+          {/* Core HR Management Modules inside Unified Admin Layout */}
           <Route
             element={
-              <DashboardLayout activeNav="employees">
+              <AdminLayout>
                 <ManageEmployeesPage />
-              </DashboardLayout>
+              </AdminLayout>
             }
             path="/employees"
           />
           <Route
             element={
-              <DashboardLayout activeNav="roles">
+              <AdminLayout>
                 <RolePermissionsPage />
-              </DashboardLayout>
+              </AdminLayout>
             }
             path="/roles"
           />
           <Route
             element={
-              <DashboardLayout activeNav="departments">
+              <AdminLayout>
                 <DepartmentsPage />
-              </DashboardLayout>
+              </AdminLayout>
             }
             path="/departments"
           />
 
-          {/* Dedicated Operations Modules with Left Navigation Sidebar */}
+          {/* Dedicated Operations Modules */}
           <Route
             element={
               <AttendanceLayout>
