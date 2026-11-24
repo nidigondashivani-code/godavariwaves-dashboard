@@ -1,21 +1,44 @@
+import { apiClient, clearAuthTokens, getStoredToken, saveAuthTokens } from '../../../api/apiClient';
+import { AuthUser } from '../../../types/user.types';
+
 const DEMO_SESSION_KEY = 'ems-admin-demo-session';
 
-export const DEMO_ADMIN_EMAIL = 'admin@godavariwaves.com';
-export const DEMO_ADMIN_PASSWORD = 'Admin@123';
-
-export function authenticateDemoAdmin(email: string, password: string): boolean {
-  if (email.trim() !== DEMO_ADMIN_EMAIL || password !== DEMO_ADMIN_PASSWORD) {
-    return false;
+export async function loginWithJwt(
+  email: string,
+  password: string,
+  rememberMe = true
+): Promise<AuthUser> {
+  const res = await apiClient.post('/auth/login', {
+    email: email.trim(),
+    password,
+  });
+  const { accessToken, refreshToken, user } = res.data.data as {
+    accessToken: string;
+    refreshToken: string;
+    user: AuthUser;
+  };
+  saveAuthTokens(accessToken, refreshToken, rememberMe);
+  if (user.role === 'Admin' || user.role === 'HR') {
+    sessionStorage.setItem(DEMO_SESSION_KEY, 'active');
+  } else {
+    sessionStorage.removeItem(DEMO_SESSION_KEY);
   }
-
-  sessionStorage.setItem(DEMO_SESSION_KEY, 'active');
-  return true;
+  return user;
 }
 
 export function isDemoAdminAuthenticated(): boolean {
-  return sessionStorage.getItem(DEMO_SESSION_KEY) === 'active';
+  return Boolean(getStoredToken());
 }
 
-export function clearDemoAdminSession(): void {
-  sessionStorage.removeItem(DEMO_SESSION_KEY);
+export async function clearDemoAdminSession(): Promise<void> {
+  try {
+    if (getStoredToken()) {
+      await apiClient.post('/auth/logout');
+    }
+  } catch {
+    // Ignore network errors during logout
+  } finally {
+    clearAuthTokens();
+    sessionStorage.removeItem(DEMO_SESSION_KEY);
+  }
 }

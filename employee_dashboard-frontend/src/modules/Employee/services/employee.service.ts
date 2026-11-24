@@ -1,6 +1,8 @@
 import { Employee, EmployeeDashboardMetrics } from '../types/employee.types';
 import { INITIAL_EMPLOYEES } from '../constants/employee.constants';
 import notificationService from '../../Notifications/services/notification.service';
+import hrmsApi from '../../../services/hrmsApi.service';
+import { getStoredToken } from '../../../api/apiClient';
 
 const STORAGE_KEY = 'ems_employees_directory_live_v1';
 
@@ -315,6 +317,77 @@ class EmployeeService {
   public resetToDefaultSeed(): void {
     this.employees = [...INITIAL_EMPLOYEES];
     this.saveToStorage();
+  }
+
+  /**
+   * Shared Backend API Integration Methods (MySQL 8 via Express /api/v1/employees)
+   */
+  public async syncFromBackend(): Promise<Employee[]> {
+    if (!getStoredToken()) return this.getEmployees();
+    const res = await hrmsApi.listEmployees({ limit: 100 });
+    const rows = Array.isArray(res?.employees) ? res.employees : [];
+    const mapped: Employee[] = rows.map((r: Record<string, unknown>) => {
+      const dept = r.department as { name?: string } | undefined;
+      const desig = r.designation as { title?: string } | undefined;
+      const usr = r.user as { role?: { name?: string }; is_active?: boolean; last_login_at?: string } | undefined;
+      return {
+        id: String(r.id),
+        employeeId: String(r.employee_code || ''),
+        firstName: String(r.first_name || ''),
+        lastName: String(r.last_name || ''),
+        companyEmail: String(r.company_email || ''),
+        mobileNumber: String(r.phone || ''),
+        department: (dept?.name || 'Software Development') as Employee['department'],
+        designation: String(desig?.title || 'Software Engineer'),
+        role: (usr?.role?.name === 'Admin' ? 'Admin' : 'Employee') as Employee['role'],
+        employmentType: (String(r.employment_type || 'Full-time') as Employee['employmentType']),
+        joiningDate: String(r.joining_date || ''),
+        status: (r.employment_status === 'Active' ? 'Active' : 'Inactive') as Employee['status'],
+        dashboardAccess: Boolean(usr?.is_active ?? true),
+        inactivityReason: r.inactivity_reason ? String(r.inactivity_reason) : undefined,
+        createdAt: String(r.createdAt || new Date().toISOString()),
+        isDeleted: Boolean(r.is_deleted),
+      };
+    });
+    this.employees = mapped;
+    this.saveToStorage();
+    return this.getEmployees();
+  }
+
+  public async createEmployeeOnBackend(payload: Record<string, unknown>) {
+    return hrmsApi.createEmployee(payload);
+  }
+
+  public async updateEmployeeOnBackend(id: number, payload: Record<string, unknown>) {
+    return hrmsApi.updateEmployee(id, payload);
+  }
+
+  public async activateEmployeeOnBackend(id: number) {
+    return hrmsApi.activateEmployee(id);
+  }
+
+  public async deactivateEmployeeOnBackend(id: number, reason = 'Deactivated') {
+    return hrmsApi.deactivateEmployee(id, reason);
+  }
+
+  public async toggleDashboardAccessOnBackend(id: number, enabled: boolean) {
+    return hrmsApi.toggleDashboardAccess(id, enabled);
+  }
+
+  public async resetPasswordOnBackend(id: number, newPassword?: string) {
+    return hrmsApi.resetEmployeePassword(id, newPassword);
+  }
+
+  public async softDeleteEmployeeOnBackend(id: number) {
+    return hrmsApi.softDeleteEmployee(id);
+  }
+
+  public async bulkActionOnBackend(
+    ids: number[],
+    action: 'activate' | 'deactivate' | 'delete' | 'enableAccess' | 'disableAccess',
+    reason?: string
+  ) {
+    return hrmsApi.bulkEmployeeAction(ids, action, reason);
   }
 }
 

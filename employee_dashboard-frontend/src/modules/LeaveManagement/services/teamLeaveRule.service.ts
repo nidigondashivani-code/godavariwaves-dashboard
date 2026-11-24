@@ -2,43 +2,40 @@ import { apiClient } from '../../../api/apiClient';
 import { ITeamLeaveRule, ICreateTeamLeaveRuleDTO, IUpdateTeamLeaveRuleDTO } from '../types/TeamLeaveRule';
 import { ILeaveConflict, ICheckConflictParams, IConflictCheckResult } from '../types/LeaveConflict';
 
-/**
- * Team Leave Rule Frontend Service
- * API client methods for team leave rules and conflict detection.
- */
 export const teamLeaveRuleService = {
   getRules: async (): Promise<ITeamLeaveRule[]> => {
-    // Boilerplate for future implementation
-    return [];
+    const res = await apiClient.get('/team-leave-rules');
+    return res.data?.data || [];
   },
 
   getRuleByTeam: async (teamId: number): Promise<ITeamLeaveRule | null> => {
-    // Boilerplate for future implementation
-    return null;
+    const res = await apiClient.get(`/team-leave-rules/team/${teamId}`);
+    return res.data?.data || null;
   },
 
   createRule: async (data: ICreateTeamLeaveRuleDTO): Promise<ITeamLeaveRule> => {
-    // Boilerplate for future implementation
-    return {} as ITeamLeaveRule;
+    const res = await apiClient.post('/team-leave-rules', data);
+    return res.data?.data;
   },
 
   updateRule: async (id: number, data: IUpdateTeamLeaveRuleDTO): Promise<ITeamLeaveRule> => {
-    // Boilerplate for future implementation
-    return {} as ITeamLeaveRule;
+    const res = await apiClient.put(`/team-leave-rules/${id}`, data);
+    return res.data?.data;
   },
 
   deleteRule: async (id: number): Promise<void> => {
-    // Boilerplate for future implementation
+    await apiClient.delete(`/team-leave-rules/${id}`);
   },
 
   checkConflict: async (params: ICheckConflictParams): Promise<IConflictCheckResult> => {
-    // Boilerplate for future implementation
-    return { hasConflict: false, conflicts: [] };
+    const res = await apiClient.post('/team-leave-rules/check-conflict', params);
+    return res.data?.data || { hasConflict: false, conflicts: [] };
   },
 
   getConflictHistory: async (teamId?: number): Promise<ILeaveConflict[]> => {
-    // Boilerplate for future implementation
-    return [];
+    const url = teamId ? `/team-leave-rules/conflicts?teamId=${teamId}` : '/team-leave-rules/conflicts';
+    const res = await apiClient.get(url);
+    return res.data?.data || [];
   },
 };
 

@@ -1,17 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import teamLeaveRuleService from '../services/teamLeaveRule.service';
-import teamAvailabilityService from '../services/teamAvailability.service';
-import leaveConflictService from '../services/leaveConflict.service';
+import leaveService from '../services/leave.service';
+import { sendSuccess } from '../utils/apiResponse.util';
 
-/**
- * Team Leave Rule Controller
- * Handles HTTP requests for team leave rules, availability checks, and conflict evaluations.
- */
 export class TeamLeaveRuleController {
-  public async getRules(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async getRules(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Boilerplate for future implementation
-      res.status(200).json({ success: true, data: [] });
+      const rules = await teamLeaveRuleService.getAllRules();
+      sendSuccess(res, rules, 'Team leave rules retrieved');
     } catch (error) {
       next(error);
     }
@@ -19,8 +15,8 @@ export class TeamLeaveRuleController {
 
   public async getRuleByTeam(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Boilerplate for future implementation
-      res.status(200).json({ success: true, data: null });
+      const rule = await teamLeaveRuleService.getRuleByTeamId(Number(req.params.teamId));
+      sendSuccess(res, rule, 'Team leave rule retrieved');
     } catch (error) {
       next(error);
     }
@@ -28,8 +24,8 @@ export class TeamLeaveRuleController {
 
   public async createRule(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Boilerplate for future implementation
-      res.status(201).json({ success: true, message: 'Rule created successfully' });
+      const rule = await teamLeaveRuleService.createRule(req.body);
+      sendSuccess(res, rule, 'Rule created successfully', 201);
     } catch (error) {
       next(error);
     }
@@ -37,8 +33,8 @@ export class TeamLeaveRuleController {
 
   public async updateRule(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Boilerplate for future implementation
-      res.status(200).json({ success: true, message: 'Rule updated successfully' });
+      const rule = await teamLeaveRuleService.updateRule(Number(req.params.id), req.body);
+      sendSuccess(res, rule, 'Rule updated successfully');
     } catch (error) {
       next(error);
     }
@@ -46,8 +42,8 @@ export class TeamLeaveRuleController {
 
   public async deleteRule(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Boilerplate for future implementation
-      res.status(200).json({ success: true, message: 'Rule deleted successfully' });
+      await teamLeaveRuleService.deleteRule(Number(req.params.id));
+      sendSuccess(res, { deleted: true }, 'Rule deleted successfully');
     } catch (error) {
       next(error);
     }
@@ -55,8 +51,11 @@ export class TeamLeaveRuleController {
 
   public async getTeamAvailability(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Boilerplate for future implementation
-      res.status(200).json({ success: true, data: {} });
+      const data = await teamLeaveRuleService.getTeamAvailability(
+        Number(req.params.teamId),
+        req.query.date as string | undefined
+      );
+      sendSuccess(res, data, 'Team availability computed');
     } catch (error) {
       next(error);
     }
@@ -64,8 +63,21 @@ export class TeamLeaveRuleController {
 
   public async checkConflict(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Boilerplate for future implementation
-      res.status(200).json({ success: true, hasConflict: false });
+      const employeeId = req.user?.employeeId || Number(req.body.employee_id);
+      const calc = await leaveService.calculateLeaveDays(req.body.start_date, req.body.end_date);
+      const result = await leaveService.evaluateTeamLeaveRules(employeeId, calc.workingDates);
+      sendSuccess(res, result, 'Conflict check completed');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async getConflictHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await teamLeaveRuleService.getConflictHistory(
+        req.query.teamId ? Number(req.query.teamId) : undefined
+      );
+      sendSuccess(res, data, 'Leave conflict history retrieved');
     } catch (error) {
       next(error);
     }

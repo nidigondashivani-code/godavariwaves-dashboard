@@ -20,6 +20,7 @@ import {
   ToastMessage,
   ToastType,
 } from '../../Employee/components/ToastNotification';
+import { extractApiError } from '../../../api/apiClient';
 
 export const RolePermissionsPage: React.FC = () => {
   // State
@@ -74,22 +75,27 @@ export const RolePermissionsPage: React.FC = () => {
     setIsConfirmationOpen(true);
   };
 
-  // Confirm Save
-  const handleConfirmSavePermissions = () => {
+  // Confirm Save — persists directly to MySQL backend Roles & Permissions API
+  const handleConfirmSavePermissions = async () => {
     if (!pendingPermissionsToSave) return;
 
-    const res = rolePermissionsService.updateEmployeePermissions(
-      pendingPermissionsToSave,
-      'Admin User'
-    );
-
-    if (res.success) {
+    try {
+      const backendRoles = await rolePermissionsService.fetchRolesFromApi();
+      const empRole = Array.isArray(backendRoles)
+        ? backendRoles.find((r: { name: string }) => r.name === 'Employee')
+        : null;
+      if (!empRole?.id) {
+        showToast('Update Failed', 'Employee role not found in backend database.', 'error');
+        return;
+      }
+      await rolePermissionsService.updatePermissionsOnBackend(empRole.id, pendingPermissionsToSave);
+      rolePermissionsService.updateEmployeePermissions(pendingPermissionsToSave, 'Admin User');
       loadData();
       setIsConfirmationOpen(false);
       setPendingPermissionsToSave(null);
-      showToast('Permissions Updated', res.message, 'success');
-    } else {
-      showToast('Update Failed', res.message, 'error');
+      showToast('Permissions Updated', 'Employee permissions saved to MySQL and enforced on backend.', 'success');
+    } catch (err) {
+      showToast('Update Failed', extractApiError(err, 'Unable to update permissions in backend.'), 'error');
     }
   };
 
