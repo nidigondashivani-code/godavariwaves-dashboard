@@ -16,7 +16,6 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import AttendanceCalendarView from '../components/AttendanceCalendarView';
 import AttendanceMetricWidget from '../components/AttendanceMetricWidget';
 import AttendanceStatsCard from '../components/AttendanceStatsCard';
 import AttendanceTable from '../components/AttendanceTable';
@@ -295,7 +294,6 @@ const CorrectionModal: React.FC<CorrectionModalProps> = ({ row, onClose, onSave 
 
 export const AdminAttendancePage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(todayString);
-  const [calendarMonth, setCalendarMonth] = useState(() => todayString().slice(0, 7));
   const [dateScope, setDateScope] = useState<DateScope>('day');
   const [activeSummary, setActiveSummary] = useState<AttendanceSummaryFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -382,17 +380,8 @@ export const AdminAttendancePage: React.FC = () => {
     [rows]
   );
 
-  const statusesByDate = useMemo(() => {
-    const result: Record<string, AttendanceStatus[]> = {};
-    getMonthDates(calendarMonth).forEach((date) => {
-      result[date] = attendanceService.getAttendanceForDate(date).map((row) => row.status);
-    });
-    return result;
-  }, [calendarMonth, rows]);
-
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
-    setCalendarMonth(date.slice(0, 7));
     setDateScope('day');
     setActiveSummary('all');
   };
@@ -403,7 +392,6 @@ export const AdminAttendancePage: React.FC = () => {
     if (filter === 'yesterday') selected.setDate(today.getDate() - 1);
     const date = `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`;
     setSelectedDate(date);
-    setCalendarMonth(date.slice(0, 7));
     setDateScope(filter === 'week' ? 'week' : filter === 'month' ? 'month' : 'day');
     setActiveSummary('all');
   };
@@ -415,7 +403,6 @@ export const AdminAttendancePage: React.FC = () => {
     setStatusFilter('');
     setDateScope('day');
     setSelectedDate(todayString());
-    setCalendarMonth(todayString().slice(0, 7));
     setActiveSummary('all');
   };
 
@@ -619,14 +606,6 @@ export const AdminAttendancePage: React.FC = () => {
         rows={rows}
         activeDepartment={departmentFilter}
         onSelectDepartment={setDepartmentFilter}
-      />
-
-      <AttendanceCalendarView
-        selectedDate={selectedDate}
-        visibleMonth={calendarMonth}
-        statusesByDate={statusesByDate}
-        onSelectDate={handleSelectDate}
-        onVisibleMonthChange={setCalendarMonth}
       />
 
       {activeSummary === 'corrections' && (
