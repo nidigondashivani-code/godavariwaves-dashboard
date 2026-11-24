@@ -596,7 +596,27 @@ export const ManageEmployeesPage: React.FC = () => {
       </div>
 
       {/* 7. Main Content: Table or Cards or Empty State */}
-      {paginatedEmployees.length === 0 ? (
+      {employees.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+          <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mx-auto mb-3 shadow-xs">
+            <Users className="w-7 h-7" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">
+            No Employees in Directory
+          </h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+            Your employee directory is clean. Click below to add your first company employee.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add First Employee</span>
+          </button>
+        </div>
+      ) : paginatedEmployees.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
           <div className="w-14 h-14 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-3 shadow-sm">
             <Users className="w-7 h-7" />

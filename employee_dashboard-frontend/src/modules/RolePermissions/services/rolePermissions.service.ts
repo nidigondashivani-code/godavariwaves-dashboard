@@ -69,13 +69,13 @@ class RolePermissionsService {
           if (role.name === 'Admin') {
             return {
               ...role,
-              assignedEmployeesCount: adminEmployees.length || 2,
+              assignedEmployeesCount: adminEmployees.length,
             };
           }
           if (role.name === 'Employee') {
             return {
               ...role,
-              assignedEmployeesCount: regularEmployees.length || 10,
+              assignedEmployeesCount: regularEmployees.length,
               totalPermissions: this.countActivePermissions(role.permissions),
             };
           }
@@ -265,12 +265,9 @@ class RolePermissionsService {
    * Get Dashboard Summary Metrics
    */
   public getSummaryMetrics(): RoleSummaryMetrics {
-    const roles = this.getRoles();
-    const admin = roles.find((r) => r.name === 'Admin');
-    const employee = roles.find((r) => r.name === 'Employee');
-
-    const adminEmployees = admin?.assignedEmployeesCount || 2;
-    const regularEmployees = employee?.assignedEmployeesCount || 10;
+    const employees = employeeService.getEmployees();
+    const adminEmployees = employees.filter((e) => e.role === 'Admin').length;
+    const regularEmployees = employees.filter((e) => e.role === 'Employee').length;
 
     return {
       totalRoles: 2,

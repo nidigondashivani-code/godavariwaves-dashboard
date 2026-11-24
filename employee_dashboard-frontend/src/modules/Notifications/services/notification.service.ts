@@ -10,7 +10,7 @@ import {
   NotificationSettings,
 } from '../types/notification.types';
 
-const STORAGE_KEY = 'ems_notifications_v1';
+const STORAGE_KEY = 'ems_notifications_clean_v1';
 const SETTINGS_KEY = 'ems_notifications_settings_v1';
 
 const DEFAULT_SETTINGS: NotificationSettings = {
@@ -27,136 +27,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 };
 
 // Seed notifications representing a live enterprise HRMS
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    title: 'Emergency Leave Requested',
-    description: 'Rahul Sharma submitted an emergency personal medical leave request for 2 days starting tomorrow.',
-    category: 'leave',
-    priority: 'critical',
-    timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(), // 12 mins ago
-    isRead: false,
-    employeeName: 'Rahul Sharma',
-    employeeId: 'EMP-002',
-    department: 'Software Development',
-    actionUrl: '#employees',
-    actionLabel: 'Review Request',
-  },
-  {
-    id: 'notif-2',
-    title: 'Task Overdue: Cloud Architecture Audit',
-    description: 'Platform Security Review sprint task assigned to Software Development team is 24 hours overdue.',
-    category: 'task',
-    priority: 'high',
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 mins ago
-    isRead: false,
-    employeeName: 'Sarah Jenkins',
-    employeeId: 'EMP-001',
-    department: 'Software Development',
-    actionUrl: '#employees',
-    actionLabel: 'View Task Matrix',
-  },
-  {
-    id: 'notif-3',
-    title: 'New Employee Onboarded',
-    description: 'Chloe Bennett was successfully onboarded as Office Executive with company email and dashboard access.',
-    category: 'employee',
-    priority: 'medium',
-    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
-    isRead: false,
-    employeeName: 'Chloe Bennett',
-    employeeId: 'EMP-012',
-    department: 'Administration',
-    actionUrl: '#employees',
-    actionLabel: 'View Profile',
-  },
-  {
-    id: 'notif-4',
-    title: 'Late Arrival Recorded: Post 10:00 AM',
-    description: 'Sai Kumar checked in at 10:28 AM today. Standard shift reporting threshold is 09:30 AM.',
-    category: 'attendance',
-    priority: 'high',
-    timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
-    isRead: false,
-    employeeName: 'Sai Kumar',
-    employeeId: 'EMP-003',
-    department: 'Software Development',
-    actionUrl: '#employees',
-    actionLabel: 'Attendance Log',
-  },
-  {
-    id: 'notif-5',
-    title: 'Team Lead Appointed',
-    description: 'Deepak Reddy was designated as DevOps & Infrastructure Lead for Software Development.',
-    category: 'department',
-    priority: 'medium',
-    timestamp: new Date(Date.now() - 1000 * 60 * 300).toISOString(), // 5 hours ago
-    isRead: false,
-    employeeName: 'Deepak Reddy',
-    employeeId: 'EMP-005',
-    department: 'Software Development',
-    actionUrl: '#employees',
-    actionLabel: 'View Team Members',
-  },
-  {
-    id: 'notif-6',
-    title: 'Security Permission Updated',
-    description: 'Admin modified module permissions for Employee role: Attendance export privileges updated.',
-    category: 'role',
-    priority: 'medium',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // Yesterday
-    isRead: true,
-    department: 'Administration',
-    actionUrl: '#roles',
-    actionLabel: 'Inspect Matrix',
-  },
-  {
-    id: 'notif-7',
-    title: 'Company All-Hands Meeting Scheduled',
-    description: 'Q4 Product Roadmap & Executive Briefing scheduled for Friday at 04:00 PM in Main Conference / Zoom.',
-    category: 'announcement',
-    priority: 'low',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(), // Yesterday
-    isRead: true,
-    department: 'Administration',
-  },
-  {
-    id: 'notif-8',
-    title: 'Casual Leave Approved',
-    description: 'Jessica Taylor casual leave request for November 28th has been approved by Marcus Sterling.',
-    category: 'leave',
-    priority: 'low',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    isRead: true,
-    employeeName: 'Jessica Taylor',
-    employeeId: 'EMP-008',
-    department: 'Sales',
-  },
-  {
-    id: 'notif-9',
-    title: 'Daily Work Update Submitted',
-    description: 'Arjun Verma completed frontend sprint tickets for interactive dashboard summary cards.',
-    category: 'task',
-    priority: 'low',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 52).toISOString(), // 2 days ago
-    isRead: true,
-    employeeName: 'Arjun Verma',
-    employeeId: 'EMP-005',
-    department: 'Software Development',
-  },
-  {
-    id: 'notif-10',
-    title: 'Upcoming Birthday: Emily Davis',
-    description: 'Emily Davis in Digital Marketing turns a year older this Thursday! Send birthday wishes.',
-    category: 'announcement',
-    priority: 'low',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
-    isRead: true,
-    employeeName: 'Emily Davis',
-    employeeId: 'EMP-006',
-    department: 'Digital Marketing',
-  },
-];
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 class NotificationService {
   private notifications: NotificationItem[] = [];
@@ -169,6 +40,7 @@ class NotificationService {
 
   private loadFromStorage(): void {
     try {
+      localStorage.removeItem("ems_notifications_v1");
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         this.notifications = JSON.parse(stored);

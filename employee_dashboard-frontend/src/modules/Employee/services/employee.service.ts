@@ -2,7 +2,7 @@ import { Employee, EmployeeDashboardMetrics } from '../types/employee.types';
 import { INITIAL_EMPLOYEES } from '../constants/employee.constants';
 import notificationService from '../../Notifications/services/notification.service';
 
-const STORAGE_KEY = 'ems_employees_data_v4';
+const STORAGE_KEY = 'ems_employees_directory_live_v1';
 
 class EmployeeService {
   private employees: Employee[] = [];
@@ -13,40 +13,27 @@ class EmployeeService {
 
   private loadFromStorage(): void {
     try {
+      // Clear legacy dummy data keys if present
+      localStorage.removeItem('ems_employees_data_clean_v1');
+      localStorage.removeItem('ems_employees_data_v4');
+      localStorage.removeItem('ems_employees_data_v3');
+      localStorage.removeItem('ems_employees_data_v2');
+      localStorage.removeItem('ems_employees_data_v1');
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Sanitize to ensure strict 4 departments
-          this.employees = parsed.map((emp) => {
-            let dept = emp.department;
-            let desig = emp.designation;
-            if (dept === 'Graphic Design') {
-              dept = 'Digital Marketing';
-              desig = 'Graphic Designer';
-            } else if (dept === 'HR') {
-              dept = 'Administration';
-              desig = 'Operations Coordinator';
-            } else if (dept === 'Finance') {
-              dept = 'Administration';
-              desig = 'Administrator';
-            }
-            return {
-              ...emp,
-              department: dept,
-              designation: desig,
-              inactivityReason:
-                emp.status === 'Inactive' ? emp.inactivityReason || 'Resigned' : undefined,
-            };
-          });
-        } else {
-          this.employees = [...INITIAL_EMPLOYEES];
-          this.saveToStorage();
+        if (Array.isArray(parsed)) {
+          this.employees = parsed.map((emp) => ({
+            ...emp,
+            inactivityReason:
+              emp.status === 'Inactive' ? emp.inactivityReason || 'Resigned' : undefined,
+          }));
+          return;
         }
-      } else {
-        this.employees = [...INITIAL_EMPLOYEES];
-        this.saveToStorage();
       }
+      this.employees = [...INITIAL_EMPLOYEES];
+      this.saveToStorage();
     } catch (e) {
       this.employees = [...INITIAL_EMPLOYEES];
     }
@@ -313,7 +300,6 @@ class EmployeeService {
       return jDate >= sixtyDaysAgo && jDate <= now;
     }).length;
 
-    const deptSet = new Set(activeList.map((e) => e.department));
     const desigSet = new Set(activeList.map((e) => e.designation));
 
     return {
@@ -321,7 +307,7 @@ class EmployeeService {
       activeEmployees: activeCount,
       inactiveEmployees: inactiveCount,
       newEmployees: newCount,
-      departmentCount: deptSet.size,
+      departmentCount: 4,
       designationCount: desigSet.size,
     };
   }
