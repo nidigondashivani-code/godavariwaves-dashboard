@@ -5,17 +5,12 @@ import { AttendanceRow } from '../types/attendance.types';
 
 interface AttendanceMetricWidgetProps {
   rows: AttendanceRow[];
-  weeklyTrend: Array<{ date: string; present: number; late: number }>;
   activeDepartment: string;
   onSelectDepartment: (department: string) => void;
 }
 
-const formatDay = (date: string): string =>
-  new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' });
-
 export const AttendanceMetricWidget: React.FC<AttendanceMetricWidgetProps> = ({
   rows,
-  weeklyTrend,
   activeDepartment,
   onSelectDepartment,
 }) => {
@@ -43,8 +38,6 @@ export const AttendanceMetricWidget: React.FC<AttendanceMetricWidgetProps> = ({
       halfDay: departmentRows.filter((row) => row.status === 'Half Day').length,
     };
   });
-
-  const maxTrend = Math.max(1, ...weeklyTrend.map((item) => item.present + item.late));
 
   return (
     <div className="space-y-5">
@@ -125,35 +118,6 @@ export const AttendanceMetricWidget: React.FC<AttendanceMetricWidgetProps> = ({
               </div>
             </button>
           ))}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <Clock3 className="h-4 w-4 text-blue-600" /> Weekly Attendance Trend
-          </h2>
-          <p className="mt-1 text-[11px] text-slate-500">Present and late check-ins for the current week.</p>
-        </div>
-        <div className="flex h-28 items-end justify-between gap-2">
-          {weeklyTrend.map((day) => {
-            const total = day.present + day.late;
-            const height = total ? Math.max(8, (total / maxTrend) * 90) : 4;
-            return (
-              <div key={day.date} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
-                <span className="text-[9px] font-semibold text-slate-500">{total || ''}</span>
-                <div className="flex w-full max-w-8 flex-col justify-end overflow-hidden rounded-t-md bg-slate-100" style={{ height: `${height}px` }}>
-                  {day.late > 0 && <span className="bg-orange-400" style={{ height: `${(day.late / total) * 100}%` }} />}
-                  {day.present > 0 && <span className="flex-1 bg-emerald-500" />}
-                </div>
-                <span className="text-[9px] text-slate-400">{formatDay(day.date)}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-2 flex gap-4 text-[10px] text-slate-500">
-          <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-emerald-500" />Present</span>
-          <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-orange-400" />Late</span>
         </div>
       </section>
     </div>

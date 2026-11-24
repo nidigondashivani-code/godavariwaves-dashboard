@@ -382,11 +382,6 @@ export const AdminAttendancePage: React.FC = () => {
     [rows]
   );
 
-  const weeklyTrend = useMemo(
-    () => attendanceService.getWeeklyTrend(selectedDate),
-    [selectedDate, rows]
-  );
-
   const statusesByDate = useMemo(() => {
     const result: Record<string, AttendanceStatus[]> = {};
     getMonthDates(calendarMonth).forEach((date) => {
@@ -622,7 +617,6 @@ export const AdminAttendancePage: React.FC = () => {
 
       <AttendanceMetricWidget
         rows={rows}
-        weeklyTrend={weeklyTrend}
         activeDepartment={departmentFilter}
         onSelectDepartment={setDepartmentFilter}
       />
