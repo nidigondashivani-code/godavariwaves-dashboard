@@ -192,6 +192,7 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number</label>
                 <input
                   type="tel"
+                  placeholder="+91 98765 43210"
                   value={mobileNumber}
                   onChange={(e) => setMobileNumber(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"

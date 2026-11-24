@@ -116,21 +116,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Admin User Footer Profile Card */}
-        <div className="p-3 border-t border-blue-800/60 bg-[#172554]/60">
-          <div className="flex items-center gap-3 p-2 rounded-xl">
-            <div className="w-9 h-9 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-xs shrink-0 ring-2 ring-blue-400/40">
-              AD
-            </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-white truncate">Administrator</p>
-                <p className="text-[10px] text-blue-300 truncate">admin@company.com</p>
-              </div>
-            )}
-          </div>
-        </div>
       </aside>
     </>
   );

@@ -336,7 +336,7 @@ export const INITIAL_ROLES: RoleItem[] = [
     description:
       'Unrestricted administrative access with full authority across all system modules, configurations, and governance rules.',
     status: 'Active',
-    assignedEmployeesCount: 2,
+    assignedEmployeesCount: 0,
     totalPermissions: 104,
     maxPermissions: 104,
     permissions: buildAdminPermissions(),
@@ -353,7 +353,7 @@ export const INITIAL_ROLES: RoleItem[] = [
     description:
       'Standard enterprise employee role. Permissions can be customized, granted, or revoked by System Administrators.',
     status: 'Active',
-    assignedEmployeesCount: 10,
+    assignedEmployeesCount: 0,
     totalPermissions: 16,
     maxPermissions: 104,
     permissions: buildDefaultEmployeePermissions(),
