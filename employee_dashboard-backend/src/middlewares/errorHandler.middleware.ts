@@ -48,7 +48,11 @@ export const errorHandler = (
   }
 
   logger.error('Unhandled server error:', err);
-  sendError(res, 'An unexpected internal server error occurred.', 500);
+  const errMsg = (err as any)?.message || 'An unexpected internal server error occurred.';
+  sendError(res, errMsg, 500, {
+    name: (err as any)?.name,
+    detail: errMsg,
+  });
 };
 
 export default errorHandler;

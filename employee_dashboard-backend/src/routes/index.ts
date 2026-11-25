@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import sequelize from '../config/db.config';
+import envConfig from '../config/env.config';
 import authRoutes from './auth.routes';
 import employeeRoutes from './employee.routes';
 import departmentRoutes from './department.routes';
@@ -19,11 +21,30 @@ import settingsRoutes from './settings.routes';
 
 const router = Router();
 
-router.get('/health', (_req, res) => {
+router.get('/health', async (_req, res) => {
+  let dbStatus = 'disconnected';
+  let dbError = null;
+  try {
+    await sequelize.authenticate();
+    dbStatus = 'connected';
+  } catch (err: any) {
+    dbError = err.message;
+  }
+
   res.status(200).json({
     success: true,
     message: 'Godavari Wave EMS API is running',
+    version: '1.0.2',
     timestamp: new Date().toISOString(),
+    database: {
+      status: dbStatus,
+      error: dbError,
+      host: envConfig.db.host,
+      name: envConfig.db.name,
+      userConfigured: Boolean(envConfig.db.user),
+      passwordConfigured: Boolean(envConfig.db.password),
+      ssl: envConfig.db.ssl,
+    },
   });
 });
 
