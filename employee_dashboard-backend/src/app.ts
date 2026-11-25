@@ -18,13 +18,33 @@ export const createApp = () => {
   );
   app.use(
     cors({
-      origin: [
-        envConfig.clientUrl,
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'http://127.0.0.1:5173',
-      ],
+      origin: (requestOrigin, callback) => {
+        // Allow requests with no origin (mobile apps, server-to-server, curl)
+        if (!requestOrigin) return callback(null, true);
+
+        const allowedOrigins = [
+          envConfig.clientUrl,
+          'http://localhost:5173',
+          'http://localhost:5174',
+          'http://127.0.0.1:5173',
+        ];
+
+        if (
+          !envConfig.clientUrl ||
+          envConfig.clientUrl === '*' ||
+          allowedOrigins.includes(requestOrigin) ||
+          requestOrigin.endsWith('.vercel.app') ||
+          requestOrigin.includes('localhost') ||
+          requestOrigin.includes('127.0.0.1')
+        ) {
+          return callback(null, true);
+        }
+
+        return callback(null, true);
+      },
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     })
   );
   app.use(express.json({ limit: '5mb' }));
