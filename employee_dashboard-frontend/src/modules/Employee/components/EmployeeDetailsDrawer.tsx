@@ -37,6 +37,11 @@ export const EmployeeDetailsDrawer: React.FC<EmployeeDetailsDrawerProps> = ({
   onToggleStatus,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'history' | 'security'>('profile');
+  const [imageFailed, setImageFailed] = useState(false);
+
+  React.useEffect(() => {
+    setImageFailed(false);
+  }, [employee?.id, employee?.photoUrl]);
 
   if (!isOpen || !employee) return null;
 
@@ -62,11 +67,12 @@ export const EmployeeDetailsDrawer: React.FC<EmployeeDetailsDrawerProps> = ({
         <div className="p-6 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {employee.photoUrl ? (
+              {employee.photoUrl && !imageFailed ? (
                 <img
                   src={employee.photoUrl}
                   alt={`${employee.firstName} ${employee.lastName}`}
                   className="w-16 h-16 rounded-full object-cover ring-4 ring-white/20 shadow-lg"
+                  onError={() => setImageFailed(true)}
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-blue-700 text-white font-extrabold flex items-center justify-center text-xl ring-4 ring-white/20 shadow-lg">

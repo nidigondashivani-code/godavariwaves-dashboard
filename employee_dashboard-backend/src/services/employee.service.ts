@@ -227,7 +227,7 @@ export class EmployeeService {
       );
 
       const fullName = `${dto.first_name.trim()} ${dto.last_name.trim()}`.trim();
-      const savedProfilePic = saveBase64Image(dto.photo_url || dto.profile_picture);
+      const savedProfilePic = saveBase64Image(dto.photo_url || dto.profile_picture || dto.profilePicture);
       const employee = await Employee.create(
         {
           user_id: user.id,
