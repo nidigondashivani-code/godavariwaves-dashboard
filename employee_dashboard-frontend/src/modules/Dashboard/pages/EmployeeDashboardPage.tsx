@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Clock3,
@@ -66,6 +66,38 @@ const TONE_STYLES: Record<CardTone, { icon: string; accent: string; label: strin
   cyan: { icon: 'bg-cyan-50 text-cyan-700', accent: 'bg-cyan-500', label: 'text-cyan-700' },
 };
 
+const formatTime = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+const EMPTY_DASHBOARD_DATA: DashboardData = {
+  employee: {
+    id: 0,
+    employee_code: '--',
+    full_name: 'Employee',
+    profile_picture: null,
+    department: null,
+    designation: null,
+  },
+  today: new Date().toISOString().split('T')[0],
+  summary: {
+    todayAttendanceStatus: 'Not Clocked In',
+    workingHours: 0,
+    totalLeaveBalance: 0,
+    pendingTasksCount: 0,
+    completedTasksCount: 0,
+    pendingWorkUpdatesCount: 0,
+  },
+  todayAttendance: null,
+  leaveOverview: {
+    balances: [],
+    pendingRequestsCount: 0,
+  },
+  notifications: {
+    items: [],
+    unreadCount: 0,
+  },
+};
+
 export const EmployeeDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -93,7 +125,7 @@ export const EmployeeDashboardPage: React.FC = () => {
     loadDashboard();
   }, [loadDashboard]);
 
-  const handleClockIn = async () => {
+  const handleClockIn = useCallback(async () => {
     setClockLoading(true);
     try {
       await apiClient.post('/attendance/clock-in');
@@ -104,9 +136,9 @@ export const EmployeeDashboardPage: React.FC = () => {
     } finally {
       setClockLoading(false);
     }
-  };
+  }, [loadDashboard, showToast]);
 
-  const handleClockOut = async () => {
+  const handleClockOut = useCallback(async () => {
     setClockLoading(true);
     try {
       await apiClient.post('/attendance/clock-out');
@@ -117,40 +149,7 @@ export const EmployeeDashboardPage: React.FC = () => {
     } finally {
       setClockLoading(false);
     }
-  };
-
-  if (loading) {
-    return <LoadingSpinner label="Loading your dashboard..." />;
-  }
-
-  const emptyData: DashboardData = {
-    employee: {
-      id: 0,
-      employee_code: '--',
-      full_name: 'Employee',
-      profile_picture: null,
-      department: null,
-      designation: null,
-    },
-    today: new Date().toISOString().split('T')[0],
-    summary: {
-      todayAttendanceStatus: 'Not Clocked In',
-      workingHours: 0,
-      totalLeaveBalance: 0,
-      pendingTasksCount: 0,
-      completedTasksCount: 0,
-      pendingWorkUpdatesCount: 0,
-    },
-    todayAttendance: null,
-    leaveOverview: {
-      balances: [],
-      pendingRequestsCount: 0,
-    },
-    notifications: {
-      items: [],
-      unreadCount: 0,
-    },
-  };
+  }, [loadDashboard, showToast]);
 
   const {
     employee,
@@ -158,19 +157,16 @@ export const EmployeeDashboardPage: React.FC = () => {
     todayAttendance,
     leaveOverview,
     notifications,
-  } = data || emptyData;
+  } = data || EMPTY_DASHBOARD_DATA;
 
-  const formatTime = (iso?: string | null) =>
-    iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-
-  const workspaceCards: Array<{
+  const workspaceCards = useMemo<Array<{
     title: string;
     valueDisplay: string;
     description: string;
     icon: LucideIcon;
     tone: CardTone;
     to: string;
-  }> = [
+  }>>(() => [
     {
       title: 'Working Hours Today',
       valueDisplay: `${Number(summary.workingHours || 0).toFixed(1)}h`,
@@ -211,16 +207,16 @@ export const EmployeeDashboardPage: React.FC = () => {
       tone: 'violet',
       to: '/employee/work-updates',
     },
-  ];
+  ], [summary.workingHours, summary.totalLeaveBalance, summary.pendingTasksCount, summary.completedTasksCount, summary.pendingWorkUpdatesCount]);
 
-  const actionCards: Array<{
+  const actionCards = useMemo<Array<{
     title: string;
     valueDisplay: string;
     description: string;
     icon: LucideIcon;
     tone: CardTone;
     to: string;
-  }> = [
+  }>>(() => [
     {
       title: 'Pending Leave Requests',
       valueDisplay: `${leaveOverview.pendingRequestsCount}`,
@@ -245,9 +241,9 @@ export const EmployeeDashboardPage: React.FC = () => {
       tone: 'blue',
       to: '/employee/notifications',
     },
-  ];
+  ], [leaveOverview.pendingRequestsCount, todayAttendance?.late_minutes, notifications.unreadCount]);
 
-  const renderStatCard = (card: {
+  const renderStatCard = useCallback((card: {
     title: string;
     valueDisplay: string;
     description: string;
@@ -283,7 +279,11 @@ export const EmployeeDashboardPage: React.FC = () => {
         <p className={`mt-4 text-[11px] font-medium ${styles.label}`}>{card.description}</p>
       </article>
     );
-  };
+  }, [navigate]);
+
+  if (loading) {
+    return <LoadingSpinner label="Loading your dashboard..." />;
+  }
 
   return (
     <div className="space-y-6 sm:space-y-7">

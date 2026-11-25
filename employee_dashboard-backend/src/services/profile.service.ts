@@ -156,7 +156,7 @@ export class ProfileService {
         {
           model: Employee,
           as: 'employee',
-          attributes: ['id', 'employee_code', 'full_name', 'company_email'],
+          attributes: ['id', 'employee_code', 'full_name', 'company_email', 'profile_picture'],
           include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
         },
       ],

@@ -31,7 +31,8 @@ function AdminSidebar({
   const isEmployeeManagementActive =
     activeItem === 'Employee Management' ||
     activeItem === 'Employee Directory' ||
-    activeItem === 'Role & Permissions';
+    activeItem === 'Role & Permissions' ||
+    activeItem === 'Profile Requests';
 
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     'Employee Management': isEmployeeManagementActive,

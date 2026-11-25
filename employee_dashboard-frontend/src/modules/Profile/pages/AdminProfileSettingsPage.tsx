@@ -1,7 +1,8 @@
-import { useState, type ChangeEvent } from 'react';
-import { ArrowLeft, Building2, Camera, Save, ShieldCheck } from 'lucide-react';
+import { useState, useEffect, type ChangeEvent } from 'react';
+import { ArrowLeft, Building2, Camera, Save, ShieldCheck, KeyRound, Eye, EyeOff, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout/AdminLayout';
+import { apiClient, extractApiError } from '../../../api/apiClient';
 import {
   getAdminInitials,
   readAdminProfile,
@@ -18,6 +19,44 @@ function AdminProfileSettingsPage() {
   const [draft, setDraft] = useState<AdminProfile>(savedProfile);
   const [validationMessage, setValidationMessage] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Password management state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Load live admin profile from backend on mount
+  useEffect(() => {
+    let isMounted = true;
+    apiClient
+      .get('/auth/me')
+      .then((res) => {
+        const u = res.data?.data?.user;
+        if (isMounted && u) {
+          const fullName = u.employee?.fullName || u.fullName || 'Admin User';
+          const email = u.email || 'admin@godavariwaves.com';
+          const liveProfile: AdminProfile = {
+            ...savedProfile,
+            fullName,
+            email,
+          };
+          setDraft(liveProfile);
+          setSavedProfile(liveProfile);
+          saveAdminProfile(liveProfile);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
@@ -51,7 +90,7 @@ function AdminProfileSettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const fullName = draft.fullName.trim();
     const email = draft.email.trim();
     if (!fullName) {
@@ -65,26 +104,73 @@ function AdminProfileSettingsPage() {
       return;
     }
 
-    const updatedProfile = { ...draft, fullName, email };
-    try {
-      saveAdminProfile(updatedProfile);
-    } catch (error) {
-      console.error('Admin profile could not be saved.', error);
-      setValidationMessage('Unable to save profile changes. Please try again.');
-      setSaveMessage('');
-      return;
-    }
-
-    setDraft(updatedProfile);
-    setSavedProfile(updatedProfile);
+    setIsSavingProfile(true);
     setValidationMessage('');
-    setSaveMessage('Profile changes saved.');
+    setSaveMessage('');
+
+    try {
+      // Sync to backend database
+      const parts = fullName.split(' ');
+      const firstName = parts[0] || fullName;
+      const lastName = parts.slice(1).join(' ') || 'User';
+
+      await apiClient.put('/employees/1', {
+        first_name: firstName,
+        last_name: lastName,
+        company_email: email,
+      });
+
+      const updatedProfile = { ...draft, fullName, email };
+      saveAdminProfile(updatedProfile);
+      setDraft(updatedProfile);
+      setSavedProfile(updatedProfile);
+      setSaveMessage('Profile and company email updated in database successfully.');
+    } catch (error) {
+      setValidationMessage(extractApiError(error, 'Unable to save profile changes. Please try again.'));
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleCancel = () => {
     setDraft({ ...savedProfile });
     setValidationMessage('');
     setSaveMessage('');
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (!currentPassword) {
+      setPasswordError('Please enter your current password.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirmation password do not match.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await apiClient.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
+      setPasswordSuccess('Password updated successfully! You can now log in with your new password.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      setPasswordError(extractApiError(error, 'Failed to update password. Verify your current password.'));
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -97,7 +183,7 @@ function AdminProfileSettingsPage() {
               Profile &amp; Settings
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Manage your profile details and photo.
+              Manage your administrator profile details, company email, and login password.
             </p>
           </div>
           <button
@@ -110,16 +196,17 @@ function AdminProfileSettingsPage() {
           </button>
         </div>
 
+        {/* Profile Card */}
         <section
           aria-labelledby="admin-profile-heading"
           className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
         >
           <div className="border-b border-slate-100 px-5 py-4 sm:px-7">
             <h3 className="text-base font-semibold text-slate-900" id="admin-profile-heading">
-              Admin Profile
+              Admin Profile &amp; Email
             </h3>
             <p className="mt-1 text-sm text-slate-500">
-              Your profile information is saved on this device.
+              Update your administrative name and primary login email.
             </p>
           </div>
 
@@ -176,18 +263,21 @@ function AdminProfileSettingsPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium text-slate-700">
-                  Company email
-                  <input
-                    autoComplete="email"
-                    className="mt-1.5 h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    onChange={(event) => {
-                      setDraft((profile) => ({ ...profile, email: event.target.value }));
-                      setSaveMessage('');
-                    }}
-                    placeholder="admin@godavariwaves.com"
-                    type="email"
-                    value={draft.email}
-                  />
+                  Company login email
+                  <div className="relative mt-1.5">
+                    <input
+                      autoComplete="email"
+                      className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      onChange={(event) => {
+                        setDraft((profile) => ({ ...profile, email: event.target.value }));
+                        setSaveMessage('');
+                      }}
+                      placeholder="admin@godavariwaves.com"
+                      type="email"
+                      value={draft.email}
+                    />
+                    <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                  </div>
                 </label>
               </div>
 
@@ -232,16 +322,134 @@ function AdminProfileSettingsPage() {
                   Cancel
                 </button>
                 <button
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                  disabled={isSavingProfile}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:opacity-50"
                   onClick={handleSave}
                   type="button"
                 >
                   <Save aria-hidden="true" className="h-4 w-4" />
-                  Save changes
+                  {isSavingProfile ? 'Saving...' : 'Save Profile & Email'}
                 </button>
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Dedicated Admin Password Management Card */}
+        <section
+          aria-labelledby="admin-security-heading"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+        >
+          <div className="border-b border-slate-100 px-5 py-4 sm:px-7">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-700">
+                <KeyRound className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900" id="admin-security-heading">
+                  Create / Change Admin Password
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Update your administrator account password. Your new password will be hashed and saved directly in MySQL.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handlePasswordChange} className="p-5 sm:p-7 space-y-5">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Current Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3.5 pr-10 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  New Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min 6 chars)"
+                    className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3.5 pr-10 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Confirm New Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3.5 pr-10 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {passwordError && (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700">
+                {passwordError}
+              </p>
+            )}
+            {passwordSuccess && (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-medium text-emerald-700">
+                {passwordSuccess}
+              </p>
+            )}
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="text-xs text-slate-400">
+                Must be at least 6 characters. Use letters, numbers, and symbols for high security.
+              </span>
+              <button
+                type="submit"
+                disabled={isChangingPassword}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:opacity-50"
+              >
+                <KeyRound className="h-4 w-4" />
+                {isChangingPassword ? 'Saving Password...' : 'Save New Password'}
+              </button>
+            </div>
+          </form>
         </section>
       </div>
     </AdminLayout>

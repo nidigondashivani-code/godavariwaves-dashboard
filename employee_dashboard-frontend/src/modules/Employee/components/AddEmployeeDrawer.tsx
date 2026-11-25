@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Mail,
 } from 'lucide-react';
 import {
   DEPARTMENTS,
@@ -70,6 +71,7 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [role, setRole] = useState<RoleType>('Employee');
   const [dashboardAccess, setDashboardAccess] = useState(true);
+  const [sendCredentialsMail, setSendCredentialsMail] = useState(true);
 
   // Dynamic designations based on selected department from designationService
   const [designationsByDept, setDesignationsByDept] = useState(() => designationService.getDesignations());
@@ -612,6 +614,27 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Generate Random Password
                 </button>
+              </div>
+
+              {/* Send Credentials via Mail */}
+              <div className="pt-2">
+                <label className="flex items-center gap-2.5 cursor-pointer p-3 bg-blue-50/60 rounded-xl border border-blue-100 hover:bg-blue-50 transition">
+                  <input
+                    type="checkbox"
+                    checked={sendCredentialsMail}
+                    onChange={(e) => setSendCredentialsMail(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                      <Mail className="w-3.5 h-3.5 text-blue-600" />
+                      Send login credentials to employee via Email
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Notify employee with login email ({companyEmail || 'company email'}) and custom password upon onboarding.
+                    </p>
+                  </div>
+                </label>
               </div>
             </div>
 

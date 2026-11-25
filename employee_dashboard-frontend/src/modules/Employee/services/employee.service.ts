@@ -3,6 +3,7 @@ import { INITIAL_EMPLOYEES } from '../constants/employee.constants';
 import notificationService from '../../Notifications/services/notification.service';
 import hrmsApi from '../../../services/hrmsApi.service';
 import { getStoredToken } from '../../../api/apiClient';
+import { getAssetUrl } from '../../../config/env.config';
 
 const STORAGE_KEY = 'ems_employees_directory_live_v1';
 
@@ -330,6 +331,7 @@ class EmployeeService {
       const dept = r.department as { name?: string } | undefined;
       const desig = r.designation as { title?: string } | undefined;
       const usr = r.user as { role?: { name?: string }; is_active?: boolean; last_login_at?: string } | undefined;
+      const profilePic = r.profile_picture ? getAssetUrl(String(r.profile_picture)) : undefined;
       return {
         id: String(r.id),
         employeeId: String(r.employee_code || ''),
@@ -347,6 +349,7 @@ class EmployeeService {
         inactivityReason: r.inactivity_reason ? String(r.inactivity_reason) : undefined,
         createdAt: String(r.createdAt || new Date().toISOString()),
         isDeleted: Boolean(r.is_deleted),
+        photoUrl: profilePic || undefined,
       };
     });
     this.employees = mapped;

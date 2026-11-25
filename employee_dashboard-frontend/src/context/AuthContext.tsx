@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient, clearAuthTokens, getStoredToken, saveAuthTokens } from '../api/apiClient';
 import { AuthUser } from '../types/user.types';
 
@@ -47,20 +47,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('gw:auth-expired', handleExpired);
   }, [refreshUser]);
 
-  const login = async (
-    email: string,
-    password: string,
-    remember = true,
-    portal?: 'admin' | 'employee'
-  ): Promise<AuthUser> => {
-    const res = await apiClient.post('/auth/login', { email, password, portal });
-    const { accessToken, refreshToken, user: loggedInUser } = res.data.data;
-    saveAuthTokens(accessToken, refreshToken, remember);
-    setUser(loggedInUser);
-    return loggedInUser;
-  };
+  const login = useCallback(
+    async (
+      email: string,
+      password: string,
+      remember = true,
+      portal?: 'admin' | 'employee'
+    ): Promise<AuthUser> => {
+      const res = await apiClient.post('/auth/login', { email, password, portal });
+      const { accessToken, refreshToken, user: loggedInUser } = res.data.data;
+      saveAuthTokens(accessToken, refreshToken, remember);
+      setUser(loggedInUser);
+      return loggedInUser;
+    },
+    []
+  );
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       await apiClient.post('/auth/logout');
     } catch {
@@ -69,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearAuthTokens();
       setUser(null);
     }
-  };
+  }, []);
 
   const isAdmin = Boolean(
     user &&
@@ -83,19 +86,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (user.dashboardAccess === 'employee' || user.dashboardAccess === 'both')
   );
 
+  const contextValue = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      loading,
+      isAuthenticated: Boolean(user),
+      isAdmin,
+      isEmployee,
+      login,
+      logout,
+      refreshUser,
+    }),
+    [user, loading, isAdmin, isEmployee, login, logout, refreshUser]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        isAuthenticated: Boolean(user),
-        isAdmin,
-        isEmployee,
-        login,
-        logout,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

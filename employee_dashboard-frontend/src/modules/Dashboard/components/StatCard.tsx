@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 export type StatCardTone = 'blue' | 'green' | 'rose' | 'amber' | 'violet' | 'cyan';
@@ -9,6 +10,7 @@ interface StatCardProps {
   icon: LucideIcon;
   tone: StatCardTone;
   id?: string;
+  onClick?: () => void;
 }
 
 const toneStyles: Record<StatCardTone, { icon: string; accent: string; label: string }> = {
@@ -20,13 +22,28 @@ const toneStyles: Record<StatCardTone, { icon: string; accent: string; label: st
   cyan: { icon: 'bg-cyan-50 text-cyan-700', accent: 'bg-cyan-500', label: 'text-cyan-700' },
 };
 
-function StatCard({ title, value, description, icon: Icon, tone, id }: StatCardProps) {
+function StatCard({ title, value, description, icon: Icon, tone, id, onClick }: StatCardProps) {
   const styles = toneStyles[tone];
 
   return (
     <article
-      className="group relative scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md sm:p-5"
+      className={`group relative scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md sm:p-5 ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
       id={id}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <div aria-hidden="true" className={`absolute inset-y-0 left-0 w-[3px] ${styles.accent} opacity-0 transition-opacity group-hover:opacity-100`} />
       <div className="flex items-start justify-between gap-3">
@@ -45,4 +62,4 @@ function StatCard({ title, value, description, icon: Icon, tone, id }: StatCardP
   );
 }
 
-export default StatCard;
+export default memo(StatCard);

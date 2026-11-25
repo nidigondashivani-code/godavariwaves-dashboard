@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   CalendarDays,
   Plus,
@@ -118,18 +118,23 @@ export const EmployeeLeavePage: React.FC = () => {
     }
   };
 
-  const handleCancel = async (id: number) => {
-    try {
-      await apiClient.patch(`/leaves/${id}/cancel`);
-      showToast('Pending leave request cancelled.', 'info');
-      await loadData();
-    } catch (err) {
-      showToast(extractApiError(err), 'error');
-    }
-  };
+  const handleCancel = useCallback(
+    async (id: number) => {
+      try {
+        await apiClient.patch(`/leaves/${id}/cancel`);
+        showToast('Pending leave request cancelled.', 'info');
+        await loadData();
+      } catch (err) {
+        showToast(extractApiError(err), 'error');
+      }
+    },
+    [loadData, showToast]
+  );
 
-  const filteredRequests =
-    activeTab === 'All' ? requests : requests.filter((r) => r.status === activeTab);
+  const filteredRequests = useMemo(
+    () => (activeTab === 'All' ? requests : requests.filter((r) => r.status === activeTab)),
+    [activeTab, requests]
+  );
 
   if (loading) return <LoadingSpinner label="Loading leave balances & history..." />;
 

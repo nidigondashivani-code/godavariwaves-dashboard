@@ -318,9 +318,23 @@ export class EmployeeService {
     if (updates.date_of_birth !== undefined) emp.date_of_birth = updates.date_of_birth;
     if (updates.address !== undefined) emp.address = updates.address;
 
-    await emp.save();
-
     const user = await User.findByPk(emp.user_id);
+
+    if (updates.company_email !== undefined && updates.company_email.trim()) {
+      const newEmail = updates.company_email.trim().toLowerCase();
+      if (newEmail !== emp.company_email) {
+        const existing = await User.findOne({ where: { email: newEmail } });
+        if (existing && existing.id !== emp.user_id) {
+          throw new AppError('An account with this company email already exists.', 409);
+        }
+        emp.company_email = newEmail;
+        if (user) {
+          user.email = newEmail;
+        }
+      }
+    }
+
+    await emp.save();
     if (user) {
       if (updates.role_id !== undefined) user.role_id = updates.role_id;
       if (updates.dashboard_access !== undefined) user.dashboard_access = updates.dashboard_access;

@@ -4,6 +4,7 @@ import attendanceService from '../../Attendance/services/attendance.service';
 import leaveService from '../../LeaveManagement/services/leave.service';
 import notificationService from '../../Notifications/services/notification.service';
 import { apiClient } from '../../../api/apiClient';
+import { getAssetUrl } from '../../../config/env.config';
 import type {
   DailyWorkUpdate,
   WorkUpdateAdminRemark,
@@ -98,6 +99,26 @@ class WorkUpdateService {
           const lastName = nameParts.slice(1).join(' ') || '';
           const dept = emp.department?.name || 'Software Development';
 
+          let attachment: WorkUpdateAttachment | undefined = undefined;
+          if (r.attachment_url) {
+            const rawUrl: string = r.attachment_url;
+            const parts = rawUrl.split('/');
+            const rawFilename = parts[parts.length - 1] || 'Document';
+            const cleanName = rawFilename.replace(/^\d+(_\d+)?_/, '') || rawFilename;
+            const ext = cleanName.split('.').pop()?.toLowerCase();
+            let mimeType = 'application/octet-stream';
+            if (ext === 'pdf') mimeType = 'application/pdf';
+            else if (ext === 'docx' || ext === 'doc') mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            else if (ext === 'xlsx' || ext === 'xls') mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            else if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext || '')) mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+
+            attachment = {
+              name: cleanName,
+              mimeType,
+              dataUrl: getAssetUrl(rawUrl) || rawUrl,
+            };
+          }
+
           return {
             id: String(r.id),
             employeeKey: String(r.employee_id),
@@ -109,7 +130,7 @@ class WorkUpdateService {
               department: dept,
               designation: 'Software Engineer',
               companyEmail: emp.company_email || '',
-              photoUrl: undefined,
+              photoUrl: emp.profile_picture ? (getAssetUrl(emp.profile_picture) || undefined) : undefined,
             },
             date: r.work_date,
             workSummary: r.work_description || '',
@@ -117,6 +138,8 @@ class WorkUpdateService {
             remainingWork: r.tasks_completed || '',
             challenges: '',
             comments: '',
+            attachment,
+            attachmentUrl: r.attachment_url || undefined,
             submittedAt: r.createdAt || new Date().toISOString(),
             logoutTime: null,
             status: (r.status || (Number(r.progress || 0) === 100 ? 'Completed' : 'Submitted')) as WorkUpdateStatus,

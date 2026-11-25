@@ -407,7 +407,7 @@ export class LeaveService {
           model: Employee,
           as: 'employee',
           where: Object.keys(empWhere).length ? empWhere : undefined,
-          attributes: ['id', 'employee_code', 'full_name', 'department_id'],
+          attributes: ['id', 'employee_code', 'full_name', 'department_id', 'profile_picture'],
           include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
         },
       ],

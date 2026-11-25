@@ -6,6 +6,7 @@ export interface DashboardMetrics {
   employeesOnLeave: number;
   pendingLeaveRequests: number;
   pendingTaskUpdates: number;
+  pendingProfileRequests?: number;
 }
 
 export interface Birthday {

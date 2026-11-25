@@ -49,7 +49,7 @@ export const EmployeeWorkUpdatesPage: React.FC = () => {
     loadUpdates();
   }, [loadUpdates]);
 
-  const openNewModal = () => {
+  const openNewModal = useCallback(() => {
     setEditingItem(null);
     setWorkDate(new Date().toISOString().split('T')[0]);
     setWorkDescription('');
@@ -58,9 +58,9 @@ export const EmployeeWorkUpdatesPage: React.FC = () => {
     setHoursSpent(8);
     setAttachment(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const openEditModal = (item: WorkUpdateItem) => {
+  const openEditModal = useCallback((item: WorkUpdateItem) => {
     setEditingItem(item);
     setWorkDate(item.work_date);
     setWorkDescription(item.work_description);
@@ -69,9 +69,9 @@ export const EmployeeWorkUpdatesPage: React.FC = () => {
     setHoursSpent(Number(item.hours_spent || 0));
     setAttachment(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workDescription.trim()) {
       showToast('Work description is required.', 'error');
@@ -106,7 +106,7 @@ export const EmployeeWorkUpdatesPage: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [workDescription, workDate, tasksCompleted, progress, hoursSpent, attachment, editingItem, showToast, loadUpdates]);
 
   if (loading) return <LoadingSpinner label="Loading daily work updates..." />;
 

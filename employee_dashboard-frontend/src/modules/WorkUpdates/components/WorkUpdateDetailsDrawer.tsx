@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, MessageSquareText, Paperclip, X } from 'lucide-react';
+import { Download, ExternalLink, FileText, MessageSquareText, Paperclip, X } from 'lucide-react';
 import type { WorkUpdateRow } from '../types/workUpdate.types';
 
 interface WorkUpdateDetailsDrawerProps {
@@ -128,17 +128,47 @@ function WorkUpdateDetailsDrawer({
                   </div>
                 )}
                 {update.attachment && (
-                  <a
-                    className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs font-semibold text-blue-800"
-                    download={update.attachment.name}
-                    href={update.attachment.dataUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <Paperclip aria-hidden="true" className="h-4 w-4" />
-                    <span className="min-w-0 flex-1 truncate">{update.attachment.name}</span>
-                    <Download aria-hidden="true" className="h-4 w-4" />
-                  </a>
+                  <div>
+                    <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Attached Document
+                    </h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 shadow-sm">
+                          <FileText aria-hidden="true" className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold text-slate-900" title={update.attachment.name}>
+                            {update.attachment.name}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-slate-500">
+                            Attached document / file
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+                          href={update.attachment.dataUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                          <span>View</span>
+                        </a>
+                        <a
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                          download={update.attachment.name}
+                          href={update.attachment.dataUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                          <span>Download</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </section>
 

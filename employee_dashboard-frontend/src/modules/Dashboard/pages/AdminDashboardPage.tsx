@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   UsersRound,
   UserCheck,
@@ -13,9 +14,11 @@ import { apiClient } from '../../../api/apiClient';
 import AdminLayout from '../../../layouts/AdminLayout/AdminLayout';
 import StatCard, { type StatCardTone } from '../components/StatCard';
 import { getAdminDashboardData } from '../services/dashboard.service';
+import employeeService from '../../Employee/services/employee.service';
 import type { DashboardMetrics } from '../types/dashboard.types';
 
 function AdminDashboardPage() {
+  const navigate = useNavigate();
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics>(
     () => getAdminDashboardData().metrics
   );
@@ -35,6 +38,7 @@ function AdminDashboardPage() {
             employeesOnLeave: Number(stats.employeesOnLeave || 0),
             pendingLeaveRequests: Number(stats.pendingLeaves || 0),
             pendingTaskUpdates: Number(stats.pendingWorkUpdates || 0),
+            pendingProfileRequests: Number(stats.pendingProfileRequests || 0),
           });
         }
       } catch {
@@ -43,86 +47,117 @@ function AdminDashboardPage() {
     };
 
     fetchLiveMetrics();
+    void employeeService.syncFromBackend().catch(() => {});
     const interval = setInterval(fetchLiveMetrics, 15000);
     return () => {
       mounted = false;
       clearInterval(interval);
     };
   }, []);
-  const workforceCards: {
+  const workforceCards = useMemo<{
     title: string;
     value: number;
     description: string;
     icon: LucideIcon;
     tone: StatCardTone;
     id: string;
-  }[] = [
-    {
-      title: 'Total Employees',
-      value: dashboardMetrics.totalEmployees,
-      description: 'Across all departments',
-      icon: UsersRound,
-      tone: 'blue',
-      id: 'module-total-employees',
-    },
-    {
-      title: 'Present Today',
-      value: dashboardMetrics.presentToday,
-      description: 'Attendance overview',
-      icon: UserCheck,
-      tone: 'green',
-      id: 'module-present-today',
-    },
-    {
-      title: 'Absent Today',
-      value: dashboardMetrics.absentToday,
-      description: 'Attendance overview',
-      icon: UserX,
-      tone: 'rose',
-      id: 'module-absent-today',
-    },
-    {
-      title: 'Late Employees',
-      value: dashboardMetrics.lateEmployees,
-      description: 'Attendance overview',
-      icon: Clock3,
-      tone: 'amber',
-      id: 'module-late-employees',
-    },
-    {
-      title: 'Employees On Leave',
-      value: dashboardMetrics.employeesOnLeave,
-      description: 'Currently on approved leave',
-      icon: CalendarOff,
-      tone: 'violet',
-      id: 'module-employees-on-leave',
-    },
-  ];
-  const pendingRequestCards: {
+  }[]>(
+    () => [
+      {
+        title: 'Total Employees',
+        value: dashboardMetrics.totalEmployees,
+        description: 'Across all departments',
+        icon: UsersRound,
+        tone: 'blue',
+        id: 'module-total-employees',
+      },
+      {
+        title: 'Present Today',
+        value: dashboardMetrics.presentToday,
+        description: 'Attendance overview',
+        icon: UserCheck,
+        tone: 'green',
+        id: 'module-present-today',
+      },
+      {
+        title: 'Absent Today',
+        value: dashboardMetrics.absentToday,
+        description: 'Attendance overview',
+        icon: UserX,
+        tone: 'rose',
+        id: 'module-absent-today',
+      },
+      {
+        title: 'Late Employees',
+        value: dashboardMetrics.lateEmployees,
+        description: 'Attendance overview',
+        icon: Clock3,
+        tone: 'amber',
+        id: 'module-late-employees',
+      },
+      {
+        title: 'Employees On Leave',
+        value: dashboardMetrics.employeesOnLeave,
+        description: 'Currently on approved leave',
+        icon: CalendarOff,
+        tone: 'violet',
+        id: 'module-employees-on-leave',
+      },
+    ],
+    [
+      dashboardMetrics.totalEmployees,
+      dashboardMetrics.presentToday,
+      dashboardMetrics.absentToday,
+      dashboardMetrics.lateEmployees,
+      dashboardMetrics.employeesOnLeave,
+    ]
+  );
+
+  const pendingRequestCards = useMemo<{
     title: string;
     value: number;
     description: string;
     icon: LucideIcon;
     tone: StatCardTone;
     id: string;
-  }[] = [
-    {
-      title: 'Pending Leave Requests',
-      value: dashboardMetrics.pendingLeaveRequests,
-      description: 'Awaiting Admin review',
-      icon: ClipboardList,
-      tone: 'amber',
-      id: 'module-pending-leave-requests',
-    },
-    {
-      title: 'Pending Task Updates',
-      value: dashboardMetrics.pendingTaskUpdates,
-      description: 'Awaiting Admin review',
-      icon: ListTodo,
-      tone: 'blue',
-      id: 'module-pending-task-updates',
-    },
-  ];
+    onClick?: () => void;
+  }[]>(
+    () => [
+      {
+        title: 'Pending Leave Requests',
+        value: dashboardMetrics.pendingLeaveRequests,
+        description: 'Awaiting Admin review',
+        icon: ClipboardList,
+        tone: 'amber',
+        id: 'module-pending-leave-requests',
+        onClick: () => navigate('/leaves'),
+      },
+      {
+        title: 'Pending Task Updates',
+        value: dashboardMetrics.pendingTaskUpdates,
+        description: 'Awaiting Admin review',
+        icon: ListTodo,
+        tone: 'blue',
+        id: 'module-pending-task-updates',
+        onClick: () => navigate('/admin/work-updates'),
+      },
+      {
+        title: 'Pending Profile Requests',
+        value: dashboardMetrics.pendingProfileRequests ?? 0,
+        description: 'Awaiting Admin review',
+        icon: UserCheck,
+        tone: 'violet',
+        id: 'module-pending-profile-requests',
+        onClick: () => navigate('/admin/profile-requests'),
+      },
+    ],
+    [
+      dashboardMetrics.pendingLeaveRequests,
+      dashboardMetrics.pendingTaskUpdates,
+      dashboardMetrics.pendingProfileRequests,
+      navigate,
+    ]
+  );
 
   return (
     <AdminLayout>
@@ -158,11 +193,11 @@ function AdminDashboardPage() {
                 Pending Requests & Approvals
               </h3>
               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                {dashboardMetrics.pendingLeaveRequests + dashboardMetrics.pendingTaskUpdates} action items
+                {dashboardMetrics.pendingLeaveRequests + dashboardMetrics.pendingTaskUpdates + (dashboardMetrics.pendingProfileRequests ?? 0)} action items
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {pendingRequestCards.map((card) => <StatCard {...card} key={card.title} />)}
           </div>
         </section>

@@ -25,17 +25,19 @@ function AdminLayout({ children }: AdminLayoutProps) {
 
   const activeNavigation = location.pathname === '/admin/work-updates'
     ? 'Task Updates'
-    : location.pathname === '/attendance'
-      ? 'Attendance'
-      : location.pathname === '/leaves' || location.pathname === '/leave'
-        ? 'Leave Requests'
-        : location.pathname === '/employees'
-          ? 'Employee Directory'
-          : location.pathname === '/roles'
-            ? 'Role & Permissions'
-            : location.pathname === '/admin/profile'
-              ? 'Profile & Settings'
-              : dashboardNavigation;
+    : location.pathname === '/admin/profile-requests'
+      ? 'Profile Requests'
+      : location.pathname === '/attendance'
+        ? 'Attendance'
+        : location.pathname === '/leaves' || location.pathname === '/leave'
+          ? 'Leave Requests'
+          : location.pathname === '/employees'
+            ? 'Employee Directory'
+            : location.pathname === '/roles'
+              ? 'Role & Permissions'
+              : location.pathname === '/admin/profile'
+                ? 'Profile & Settings'
+                : dashboardNavigation;
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -53,6 +55,11 @@ function AdminLayout({ children }: AdminLayoutProps) {
 
     if (label === 'Role & Permissions') {
       navigate('/roles');
+      return;
+    }
+
+    if (label === 'Profile Requests') {
+      navigate('/admin/profile-requests');
       return;
     }
 

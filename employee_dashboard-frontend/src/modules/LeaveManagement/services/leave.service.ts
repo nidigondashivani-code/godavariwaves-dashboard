@@ -15,6 +15,7 @@ import { getTodayString } from '../constants/leave.constants';
 import notificationService from '../../Notifications/services/notification.service';
 import { rolePermissionsService } from '../../RolePermissions/services/rolePermissions.service';
 import { apiClient } from '../../../api/apiClient';
+import { getAssetUrl } from '../../../config/env.config';
 
 const LEAVE_STORAGE_KEY = 'ems_admin_leave_requests_v1';
 const BALANCE_STORAGE_KEY = 'ems_admin_leave_balances_v1';
@@ -141,6 +142,7 @@ class LeaveService {
           appliedDate: item.createdAt ? item.createdAt.substring(0, 10) : getTodayString(),
           status: item.status,
           rejectionReason: item.rejection_reason || undefined,
+          employeePhoto: item.employee?.profile_picture ? (getAssetUrl(item.employee.profile_picture) || undefined) : undefined,
         }));
 
         // Keep local requests that aren't on backend

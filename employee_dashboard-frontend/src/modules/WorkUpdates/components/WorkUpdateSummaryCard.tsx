@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { WorkUpdateFilter } from '../types/workUpdate.types';
 
@@ -54,4 +55,4 @@ function WorkUpdateSummaryCard({
   );
 }
 
-export default WorkUpdateSummaryCard;
+export default memo(WorkUpdateSummaryCard);

@@ -1,4 +1,4 @@
-import { Eye, MessageSquareText, UserRound } from 'lucide-react';
+import { ExternalLink, Eye, MessageSquareText, Paperclip, UserRound } from 'lucide-react';
 import type { WorkUpdateRow, WorkUpdateStatus } from '../types/workUpdate.types';
 
 interface WorkUpdateTableProps {
@@ -124,6 +124,23 @@ function WorkUpdateTable({ rows, onView, onAddRemark }: WorkUpdateTableProps) {
                     <p className="line-clamp-2 leading-5">
                       {row.update?.workSummary ?? (row.status === 'On Leave' ? 'Approved leave' : 'No update submitted')}
                     </p>
+                    {row.update?.attachment && (
+                      <div className="mt-1.5">
+                        <a
+                          aria-label={`View attached document ${row.update.attachment.name}`}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50/80 px-2 py-0.5 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-100 hover:text-blue-800"
+                          href={row.update.attachment.dataUrl}
+                          onClick={(e) => e.stopPropagation()}
+                          rel="noreferrer"
+                          target="_blank"
+                          title={`Attached document: ${row.update.attachment.name}`}
+                        >
+                          <Paperclip aria-hidden="true" className="h-3 w-3 shrink-0" />
+                          <span className="max-w-[130px] truncate">{row.update.attachment.name}</span>
+                          <ExternalLink aria-hidden="true" className="h-2.5 w-2.5 shrink-0 opacity-70" />
+                        </a>
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-4"><ProgressBar value={row.update?.progressPercentage ?? null} /></td>
                   <td className="whitespace-nowrap px-4 py-4">{formatDateTime(row.update?.submittedAt)}</td>
@@ -131,6 +148,18 @@ function WorkUpdateTable({ rows, onView, onAddRemark }: WorkUpdateTableProps) {
                   <td className="px-4 py-4"><StatusBadge status={row.status} /></td>
                   <td className="px-4 py-4">
                     <div className="flex justify-end gap-1">
+                      {row.update?.attachment && (
+                        <a
+                          aria-label={`View attached document ${row.update.attachment.name}`}
+                          className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
+                          href={row.update.attachment.dataUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                          title={`Attached document: ${row.update.attachment.name}`}
+                        >
+                          <Paperclip aria-hidden="true" className="h-4 w-4" />
+                        </a>
+                      )}
                       <button
                         aria-label={`View ${row.employee.firstName} ${row.employee.lastName} update`}
                         className="rounded-lg p-2 text-slate-500 transition hover:bg-blue-50 hover:text-blue-700"
@@ -174,6 +203,21 @@ function WorkUpdateTable({ rows, onView, onAddRemark }: WorkUpdateTableProps) {
                 <p className="mt-3 line-clamp-3 text-xs leading-5 text-slate-600">
                   {row.update?.workSummary ?? (row.status === 'On Leave' ? 'Approved leave' : 'No update submitted')}
                 </p>
+                {row.update?.attachment && (
+                  <div className="mt-2.5">
+                    <a
+                      aria-label={`View attached document ${row.update.attachment.name}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                      href={row.update.attachment.dataUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <Paperclip aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                      <span className="max-w-[200px] truncate">{row.update.attachment.name}</span>
+                      <ExternalLink aria-hidden="true" className="h-3 w-3 shrink-0 opacity-70" />
+                    </a>
+                  </div>
+                )}
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <ProgressBar value={row.update?.progressPercentage ?? null} />
                   <div className="text-[10px] text-slate-500">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   CheckSquare,
   Play,
@@ -101,12 +101,14 @@ export const EmployeeTasksPage: React.FC = () => {
     }
   };
 
-  const filtered = tasks.filter((t) => {
-    if (tab !== 'All' && t.status !== tab) return false;
-    if (priorityFilter !== 'All' && t.priority !== priorityFilter) return false;
-    if (search.trim() && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return tasks.filter((t) => {
+      if (tab !== 'All' && t.status !== tab) return false;
+      if (priorityFilter !== 'All' && t.priority !== priorityFilter) return false;
+      if (search.trim() && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [priorityFilter, search, tab, tasks]);
 
   if (loading) return <LoadingSpinner label="Loading assigned tasks..." />;
 

@@ -148,11 +148,11 @@ function AdminWorkUpdatesPage() {
   useEffect(() => {
     setLoading(true);
     void employeeService.syncFromBackend().catch(() => {});
-    void workUpdateService.syncFromBackend(selectedDate).catch(() => {});
+    void workUpdateService.syncFromBackend().catch(() => {});
     refreshData();
     const unsubscribe = workUpdateService.subscribe(refreshData);
     const refreshTimer = window.setInterval(() => {
-      void workUpdateService.syncFromBackend(selectedDate).catch(() => {});
+      void workUpdateService.syncFromBackend().catch(() => {});
       refreshData();
     }, 15000);
     window.addEventListener('storage', refreshData);
@@ -298,6 +298,7 @@ function AdminWorkUpdatesPage() {
       'Department',
       'Designation',
       'Work Summary',
+      'Attached Document',
       'Progress Percentage',
       'Submitted Time',
       'Logout Time',
@@ -312,6 +313,7 @@ function AdminWorkUpdatesPage() {
       row.employee.department,
       row.employee.designation,
       row.update?.workSummary ?? '',
+      row.update?.attachment?.name ?? '',
       row.update?.progressPercentage ?? '',
       row.update?.submittedAt ?? '',
       row.logoutTime ?? '',

@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ListTodo,
   ShieldCheck,
+  UserCheck,
   UserRoundCog,
   Users,
   UsersRound,
@@ -32,6 +33,7 @@ export const adminNavigationItems: AdminNavigationItem[] = [
     subItems: [
       { label: 'Employee Directory', icon: Users, path: '/employees' },
       { label: 'Role & Permissions', icon: ShieldCheck, path: '/roles' },
+      { label: 'Profile Requests', icon: UserCheck, path: '/admin/profile-requests' },
     ],
   },
   { label: 'Attendance', icon: CalendarCheck2, path: '/attendance' },

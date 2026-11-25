@@ -35,6 +35,7 @@ export interface DailyWorkUpdate {
   challenges?: string;
   comments?: string;
   attachment?: WorkUpdateAttachment;
+  attachmentUrl?: string | null;
   submittedAt: string;
   logoutTime: string | null;
   adminRemarks?: WorkUpdateAdminRemark[];
