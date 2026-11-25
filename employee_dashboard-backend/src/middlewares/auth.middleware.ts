@@ -63,6 +63,17 @@ export const authenticate = async (
       throw new AppError('Account is inactive or dashboard access is disabled.', 401);
     }
 
+    // Rule 5: Single active login session enforcement
+    if (decoded.loginTimestamp && user.last_login_at) {
+      const lastLoginTime = new Date(user.last_login_at).getTime();
+      if (lastLoginTime - decoded.loginTimestamp > 3000) {
+        throw new AppError(
+          'Your session has expired because you logged in from another device. Please log in again.',
+          401
+        );
+      }
+    }
+
     const roleObj = user.get('role') as (Role & { permissions?: Permission[] }) | undefined;
     const empObj = user.get('employee') as Employee | undefined;
     if (empObj && (empObj.is_deleted || empObj.employment_status === 'Inactive' || empObj.employment_status === 'Terminated')) {

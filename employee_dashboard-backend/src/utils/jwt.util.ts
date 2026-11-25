@@ -8,6 +8,7 @@ export interface JwtUserPayload {
   role: string;
   dashboardAccess: string;
   permissions?: string[];
+  loginTimestamp?: number;
 }
 
 export const generateAccessToken = (payload: JwtUserPayload): string => {

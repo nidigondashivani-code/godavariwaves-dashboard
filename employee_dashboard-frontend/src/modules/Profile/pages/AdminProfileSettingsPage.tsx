@@ -118,6 +118,8 @@ function AdminProfileSettingsPage() {
         first_name: firstName,
         last_name: lastName,
         company_email: email,
+        photo_url: draft.avatarUrl || null,
+        profile_picture: draft.avatarUrl || null,
       });
 
       const updatedProfile = { ...draft, fullName, email };

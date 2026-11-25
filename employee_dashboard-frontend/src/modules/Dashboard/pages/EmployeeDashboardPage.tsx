@@ -16,9 +16,11 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { apiClient, extractApiError } from '../../../api/apiClient';
 import { useToast } from '../../../providers/ToastProvider';
+import { getAssetUrl } from '../../../config/env.config';
 import {
   LoadingSpinner,
   Button,
+  Modal,
 } from '../../../components/common/UI';
 import type {
   AttendanceRecord,
@@ -53,6 +55,7 @@ interface DashboardData {
     items: NotificationItem[];
     unreadCount: number;
   };
+  recentWorkUpdates?: Array<{ id: number; work_date: string; work_description?: string }>;
 }
 
 type CardTone = 'blue' | 'green' | 'rose' | 'amber' | 'violet' | 'cyan';
@@ -96,6 +99,7 @@ const EMPTY_DASHBOARD_DATA: DashboardData = {
     items: [],
     unreadCount: 0,
   },
+  recentWorkUpdates: [],
 };
 
 export const EmployeeDashboardPage: React.FC = () => {
@@ -106,6 +110,16 @@ export const EmployeeDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [apiNotice, setApiNotice] = useState<string | null>(null);
   const [clockLoading, setClockLoading] = useState(false);
+
+  // Mandatory Daily Work Update modal state for clocking out / logging out
+  const [isClockOutModalOpen, setIsClockOutModalOpen] = useState(false);
+  const [workCompleted, setWorkCompleted] = useState('');
+  const [progressPct, setProgressPct] = useState(100);
+  const [remainingWork, setRemainingWork] = useState('');
+  const [challenges, setChallenges] = useState('');
+  const [comments, setComments] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [isSubmittingWorkUpdate, setIsSubmittingWorkUpdate] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -138,18 +152,80 @@ export const EmployeeDashboardPage: React.FC = () => {
     }
   }, [loadDashboard, showToast]);
 
-  const handleClockOut = useCallback(async () => {
+  const handleClockOutClick = useCallback(async () => {
+    const todayStr = data?.today || new Date().toISOString().split('T')[0];
+    const hasTodayUpdate = (data?.recentWorkUpdates || []).some((u) => u.work_date === todayStr);
+
+    if (!hasTodayUpdate) {
+      setIsClockOutModalOpen(true);
+      return;
+    }
+
     setClockLoading(true);
     try {
       await apiClient.post('/attendance/clock-out');
-      showToast('Clocked out successfully!', 'success');
+      showToast('Shift completed and clocked out successfully!', 'success');
       await loadDashboard();
     } catch (err) {
-      showToast(extractApiError(err), 'error');
+      const errMsg = extractApiError(err);
+      if (errMsg.toLowerCase().includes('work update') || errMsg.toLowerCase().includes('mandatory')) {
+        setIsClockOutModalOpen(true);
+      } else {
+        showToast(errMsg, 'error');
+      }
     } finally {
       setClockLoading(false);
     }
-  }, [loadDashboard, showToast]);
+  }, [data?.recentWorkUpdates, data?.today, loadDashboard, showToast]);
+
+  const handleSubmitWorkUpdateAndClockOut = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workCompleted.trim()) {
+      showToast('Work completed today is required before clocking out.', 'error');
+      return;
+    }
+
+    setIsSubmittingWorkUpdate(true);
+    try {
+      const todayStr = data?.today || new Date().toISOString().split('T')[0];
+      const formData = new FormData();
+      formData.append('work_date', todayStr);
+      formData.append('work_description', workCompleted.trim());
+      formData.append('progress', String(progressPct));
+
+      const extraNotes: string[] = [];
+      if (remainingWork.trim()) extraNotes.push(`Remaining Work: ${remainingWork.trim()}`);
+      if (challenges.trim()) extraNotes.push(`Challenges / Blockers: ${challenges.trim()}`);
+      if (comments.trim()) extraNotes.push(`Comments: ${comments.trim()}`);
+      formData.append('tasks_completed', extraNotes.join(' | ') || 'Daily shift completed');
+      formData.append('hours_spent', String(data?.summary.workingHours || 8));
+
+      if (attachment) {
+        formData.append('attachment', attachment);
+      }
+
+      // 1. Submit Mandatory Daily Work Update
+      await apiClient.post('/work-updates', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      // 2. Perform Clock-Out
+      await apiClient.post('/attendance/clock-out');
+
+      showToast('Daily work update submitted and clocked out successfully! Shift completed.', 'success');
+      setIsClockOutModalOpen(false);
+      setWorkCompleted('');
+      setRemainingWork('');
+      setChallenges('');
+      setComments('');
+      setAttachment(null);
+      await loadDashboard();
+    } catch (err) {
+      showToast(extractApiError(err, 'Failed to complete clock-out. Please try again.'), 'error');
+    } finally {
+      setIsSubmittingWorkUpdate(false);
+    }
+  };
 
   const {
     employee,
@@ -295,17 +371,39 @@ export const EmployeeDashboardPage: React.FC = () => {
 
       {/* Top Page Title & Quick Actions — exact AdminDashboardPage heading typography */}
       <div className="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2
-            className="scroll-mt-24 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl"
-            id="dashboard-overview"
-          >
-            Dashboard Overview
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            {employee.employee_code} · {employee.department?.name || 'General'} ·{' '}
-            {employee.designation?.title || 'Employee'}
-          </p>
+        <div className="flex items-center gap-3.5">
+          {employee.profile_picture ? (
+            <img
+              src={getAssetUrl(employee.profile_picture) || ''}
+              alt={employee.full_name}
+              className="h-12 w-12 rounded-2xl border border-slate-200 object-cover shadow-sm ring-2 ring-blue-50"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-sm ring-2 ring-blue-50">
+              {employee.full_name
+                .split(' ')
+                .filter(Boolean)
+                .map((n) => n[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || 'EM'}
+            </div>
+          )}
+          <div>
+            <h2
+              className="scroll-mt-24 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl"
+              id="dashboard-overview"
+            >
+              Dashboard Overview
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {employee.employee_code} · {employee.department?.name || 'General'} ·{' '}
+              {employee.designation?.title || 'Employee'}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
@@ -323,7 +421,7 @@ export const EmployeeDashboardPage: React.FC = () => {
             <button
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-rose-600 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-60"
               disabled={clockLoading}
-              onClick={handleClockOut}
+              onClick={handleClockOutClick}
               type="button"
             >
               <LogOut aria-hidden="true" className="h-4 w-4" />
@@ -468,6 +566,122 @@ export const EmployeeDashboardPage: React.FC = () => {
           </div>
         </section>
       </div>
+
+      {/* Mandatory Work Update Modal for Clock-Out / Shift Logout */}
+      <Modal
+        open={isClockOutModalOpen}
+        onClose={() => setIsClockOutModalOpen(false)}
+        title="Submit Daily Work Update to Complete Clock Out"
+        subtitle="Office Policy requires a daily work summary and progress percentage before concluding your shift."
+        maxWidth="max-w-xl"
+      >
+        <form onSubmit={handleSubmitWorkUpdateAndClockOut} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Work Completed Today <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              required
+              rows={3}
+              value={workCompleted}
+              onChange={(e) => setWorkCompleted(e.target.value)}
+              placeholder="Describe tasks completed, milestones achieved, or deliverables today..."
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Progress Percentage (0% - 100%) <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={progressPct}
+                  onChange={(e) => setProgressPct(Number(e.target.value))}
+                  className="flex-1 accent-blue-600"
+                />
+                <span className="w-12 text-right text-xs font-bold text-blue-600">{progressPct}%</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                File Attachment (Optional)
+              </label>
+              <input
+                type="file"
+                onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                className="w-full text-xs text-slate-600 file:mr-2 file:rounded-lg file:border-0 file:bg-blue-50 file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Remaining Work (Optional)
+            </label>
+            <textarea
+              rows={2}
+              value={remainingWork}
+              onChange={(e) => setRemainingWork(e.target.value)}
+              placeholder="Items queued or carried over for tomorrow..."
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Challenges / Blockers (Optional)
+              </label>
+              <input
+                type="text"
+                value={challenges}
+                onChange={(e) => setChallenges(e.target.value)}
+                placeholder="Any technical or dependency blockers..."
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Comments (Optional)
+              </label>
+              <input
+                type="text"
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                placeholder="Additional notes for HR / Team Lead..."
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2.5 pt-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setIsClockOutModalOpen(false)}
+              disabled={isSubmittingWorkUpdate}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              disabled={isSubmittingWorkUpdate}
+            >
+              {isSubmittingWorkUpdate ? 'Submitting & Clocking Out...' : 'Submit Work Update & Clock Out'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

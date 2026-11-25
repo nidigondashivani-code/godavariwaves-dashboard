@@ -5,10 +5,12 @@ import { initializeDatabase } from './database';
 import { initSocketServer } from './config/socket.config';
 import registerSocketHandlers from './socket';
 import { logger } from './utils/logger.util';
+import initAllCronJobs from './cron';
 
 const startServer = async () => {
   try {
     await initializeDatabase();
+    initAllCronJobs();
 
     const httpServer = http.createServer(app);
     const io = initSocketServer(httpServer);

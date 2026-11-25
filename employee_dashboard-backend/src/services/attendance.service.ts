@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import ExcelJS from 'exceljs';
-import { Attendance, AttendanceLog, Employee, Department, Setting } from '../models';
+import { Attendance, AttendanceLog, Employee, Department, Setting, WorkUpdate } from '../models';
 import { AppError } from '../utils/appError.util';
 import { getTodayDateString } from '../utils/dateUtils.util';
 import {
@@ -89,6 +89,20 @@ export class AttendanceService {
     }
     if (attendance.is_approved) {
       throw new AppError('Approved attendance records cannot be modified directly.', 403);
+    }
+
+    // Rule 1: Mandatory Daily Work Update check before clocking out
+    const workUpdate = await WorkUpdate.findOne({
+      where: {
+        employee_id: employeeId,
+        work_date: today,
+      },
+    });
+    if (!workUpdate || !workUpdate.work_description?.trim()) {
+      throw new AppError(
+        'Mandatory Logout Policy: You must submit your Daily Work Update (Work Completed Today and Progress Percentage) before clocking out.',
+        422
+      );
     }
 
     const now = new Date(); // Strictly server-side timestamp
@@ -279,6 +293,110 @@ export class AttendanceService {
       records: rows,
       pagination: { total: count, page, limit, totalPages: Math.ceil(count / limit) },
     };
+  }
+
+  public async adminDirectCorrect(
+    adminUserId: number,
+    data: {
+      employeeId: number;
+      date: string;
+      loginTime?: string | null;
+      logoutTime?: string | null;
+      reason: string;
+    }
+  ) {
+    const { employeeId, date, loginTime, logoutTime, reason } = data;
+    if (!employeeId || !date) {
+      throw new AppError('Employee ID and date are required.', 400);
+    }
+
+    const employee = await Employee.findByPk(employeeId);
+    if (!employee) throw new AppError('Employee not found.', 404);
+
+    let clockIn: Date | null = null;
+    let clockOut: Date | null = null;
+
+    if (loginTime) {
+      const cleanTime = loginTime.length === 5 ? `${loginTime}:00` : loginTime;
+      clockIn = new Date(`${date}T${cleanTime}`);
+      if (isNaN(clockIn.getTime())) throw new AppError('Invalid login time format (expected HH:mm).', 400);
+    }
+
+    if (logoutTime) {
+      const cleanTime = logoutTime.length === 5 ? `${logoutTime}:00` : logoutTime;
+      clockOut = new Date(`${date}T${cleanTime}`);
+      if (isNaN(clockOut.getTime())) throw new AppError('Invalid logout time format (expected HH:mm).', 400);
+    }
+
+    if (clockIn && clockOut && clockOut <= clockIn) {
+      throw new AppError('Logout time must be after login time.', 400);
+    }
+
+    const policy = await this.getOfficePolicySettings();
+    let lateMinutes = 0;
+    let workingMinutes = 0;
+    let workingHours = 0;
+    let status: 'Present' | 'Late' | 'Half Day' | 'Absent' = 'Absent';
+
+    if (clockIn) {
+      lateMinutes = calculateLateMinutes(clockIn, policy.startTime, policy.gracePeriodMinutes);
+      if (clockOut) {
+        const duration = calculateWorkingDuration(clockIn, clockOut);
+        workingMinutes = duration.workingMinutes;
+        workingHours = duration.workingHours;
+        status = determineAttendanceStatus(lateMinutes, workingHours, policy.halfDayHours);
+      } else {
+        status = lateMinutes > 0 ? 'Late' : 'Present';
+      }
+    }
+
+    let record = await Attendance.findOne({ where: { employee_id: employeeId, date } });
+    const oldState = record ? record.toJSON() : null;
+
+    if (record) {
+      record.clock_in = clockIn;
+      record.clock_out = clockOut;
+      record.late_minutes = lateMinutes;
+      record.working_minutes = workingMinutes;
+      record.working_hours = workingHours;
+      record.status = status;
+      record.is_corrected = true;
+      record.is_approved = true;
+      record.notes = reason ? `Admin correction: ${reason}` : record.notes;
+      await record.save();
+    } else {
+      record = await Attendance.create({
+        employee_id: employeeId,
+        date,
+        clock_in: clockIn,
+        clock_out: clockOut,
+        late_minutes: lateMinutes,
+        working_minutes: workingMinutes,
+        working_hours: workingHours,
+        status,
+        is_corrected: true,
+        is_approved: true,
+        notes: reason ? `Admin correction: ${reason}` : null,
+      });
+    }
+
+    await AttendanceLog.create({
+      attendance_id: record.id,
+      employee_id: employeeId,
+      action: 'CORRECTION_APPLIED',
+      timestamp: new Date(),
+      metadata: JSON.stringify({ adminUserId, reason, oldState }),
+    });
+
+    await auditLogService.log({
+      userId: adminUserId,
+      action: 'ADMIN_ATTENDANCE_CORRECTION',
+      entityType: 'Attendance',
+      entityId: record.id,
+      newValues: { date, clock_in: clockIn, clock_out: clockOut, status, lateMinutes, workingHours },
+    });
+
+    return record;
   }
 }
 

@@ -111,6 +111,21 @@ export class AttendanceController {
       next(error);
     }
   }
+
+  public async adminDirectCorrect(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const record = await attendanceService.adminDirectCorrect(req.user!.userId, {
+        employeeId: Number(req.body.employee_id || req.body.employeeId),
+        date: req.body.date,
+        loginTime: req.body.login_time || req.body.loginTime,
+        logoutTime: req.body.logout_time || req.body.logoutTime,
+        reason: req.body.reason || 'Admin direct correction',
+      });
+      sendSuccess(res, record, 'Attendance corrected successfully in database');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new AttendanceController();

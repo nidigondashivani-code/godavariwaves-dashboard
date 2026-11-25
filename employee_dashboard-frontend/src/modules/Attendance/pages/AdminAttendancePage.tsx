@@ -22,6 +22,7 @@ import AttendanceTable from '../components/AttendanceTable';
 import { OFFICE_POLICY } from '../constants/attendance.constants';
 import { useAttendance } from '../hooks/useAttendance';
 import { attendanceService } from '../services/attendance.service';
+import { apiClient, extractApiError } from '../../../api/apiClient';
 import {
   AttendanceCorrectionRequest,
   AttendanceRow,
@@ -439,30 +440,57 @@ export const AdminAttendancePage: React.FC = () => {
     showNotice(`${format === 'excel' ? 'Excel-compatible CSV' : 'CSV'} report exported.`);
   };
 
-  const handleCorrectAttendance = (
+  const handleCorrectAttendance = async (
     row: AttendanceRow,
     loginTime: string,
     logoutTime: string,
     reason: string
   ) => {
-    const result = attendanceService.correctAttendance(row.employee.id, row.date, loginTime, logoutTime, reason);
-    if (!result) {
-      showNotice('Attendance could not be corrected. The employee may no longer be active.');
-      return;
+    try {
+      // 1. Sync directly to backend database
+      await apiClient.post('/attendance/admin/correct', {
+        employee_id: Number(row.employee.id),
+        date: row.date,
+        login_time: loginTime,
+        logout_time: logoutTime,
+        reason,
+      });
+
+      // 2. Also update local attendance service state
+      attendanceService.correctAttendance(row.employee.id, row.date, loginTime, logoutTime, reason);
+
+      setCorrectionRow(null);
+      setSelectedDrawer(null);
+      showNotice('Attendance correction was applied and synced to database.');
+    } catch (err) {
+      showNotice(extractApiError(err, 'Failed to save attendance correction to database.'));
     }
-    setCorrectionRow(null);
-    setSelectedDrawer(null);
-    showNotice('Attendance correction was applied and logged.');
   };
 
-  const handleApproveCorrection = (request: AttendanceCorrectionRequest) => {
-    if (attendanceService.approveCorrection(request.id)) showNotice('Correction approved and attendance updated.');
-    else showNotice('This correction request could not be approved.');
+  const handleApproveCorrection = async (request: AttendanceCorrectionRequest) => {
+    try {
+      if (typeof request.id === 'number' || !isNaN(Number(request.id))) {
+        await apiClient.patch(`/attendance-corrections/${request.id}/approve`);
+      }
+      attendanceService.approveCorrection(String(request.id));
+      showNotice('Correction approved and attendance updated in database.');
+    } catch (err) {
+      showNotice(extractApiError(err, 'Failed to approve correction in database.'));
+    }
   };
 
-  const handleRejectCorrection = (request: AttendanceCorrectionRequest) => {
-    if (attendanceService.rejectCorrection(request.id)) showNotice('Correction request rejected.');
-    else showNotice('This correction request could not be rejected.');
+  const handleRejectCorrection = async (request: AttendanceCorrectionRequest) => {
+    try {
+      if (typeof request.id === 'number' || !isNaN(Number(request.id))) {
+        await apiClient.patch(`/attendance-corrections/${request.id}/reject`, {
+          rejection_reason: 'Admin rejected request',
+        });
+      }
+      attendanceService.rejectCorrection(String(request.id));
+      showNotice('Correction request rejected.');
+    } catch (err) {
+      showNotice(extractApiError(err, 'Failed to reject correction in database.'));
+    }
   };
 
   return (

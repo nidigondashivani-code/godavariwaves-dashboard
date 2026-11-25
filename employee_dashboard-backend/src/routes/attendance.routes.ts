@@ -17,7 +17,8 @@ router.get('/monthly', requireEmployee, attendanceController.getMonthly);
 router.get('/summary', requireEmployee, attendanceController.getSummary);
 router.get('/export', requireEmployee, attendanceController.exportMyAttendance);
 
-// Admin attendance view
+// Admin attendance view & direct correction
 router.get('/admin/all', requireAdmin, attendanceController.adminList);
+router.post('/admin/correct', requireAdmin, attendanceController.adminDirectCorrect);
 
 export default router;

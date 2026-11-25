@@ -102,7 +102,7 @@ export class Employee
         company_email: { type: DataTypes.STRING(150), allowNull: false, unique: true },
         personal_email: { type: DataTypes.STRING(150), allowNull: true },
         phone: { type: DataTypes.STRING(30), allowNull: true },
-        profile_picture: { type: DataTypes.STRING(500), allowNull: true },
+        profile_picture: { type: DataTypes.TEXT('long'), allowNull: true },
         department_id: { type: DataTypes.INTEGER, allowNull: true },
         designation_id: { type: DataTypes.INTEGER, allowNull: true },
         reporting_manager_id: { type: DataTypes.BIGINT, allowNull: true },

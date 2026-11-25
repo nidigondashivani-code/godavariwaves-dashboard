@@ -27,6 +27,7 @@ import { getTodayDateString } from '../utils/dateUtils.util';
 import auditLogService from './auditLog.service';
 import departmentService from './department.service';
 import notificationService from './notification.service';
+import { saveBase64Image } from '../utils/fileStorage.util';
 
 export interface CreateEmployeeDTO {
   employee_code?: string;
@@ -36,6 +37,9 @@ export interface CreateEmployeeDTO {
   password?: string;
   temporary_password?: string;
   phone?: string;
+  profile_picture?: string | null;
+  profilePicture?: string | null;
+  photo_url?: string | null;
   department_id?: number | null;
   department_name?: string;
   designation_id?: number | null;
@@ -223,6 +227,7 @@ export class EmployeeService {
       );
 
       const fullName = `${dto.first_name.trim()} ${dto.last_name.trim()}`.trim();
+      const savedProfilePic = saveBase64Image(dto.photo_url || dto.profile_picture);
       const employee = await Employee.create(
         {
           user_id: user.id,
@@ -232,6 +237,7 @@ export class EmployeeService {
           full_name: fullName,
           company_email: email,
           phone: dto.phone || null,
+          profile_picture: savedProfilePic,
           department_id: resolvedDeptId,
           designation_id: resolvedDesigId,
           reporting_manager_id: dto.reporting_manager_id || null,
@@ -317,6 +323,10 @@ export class EmployeeService {
     if (updates.joining_date !== undefined) emp.joining_date = updates.joining_date;
     if (updates.date_of_birth !== undefined) emp.date_of_birth = updates.date_of_birth;
     if (updates.address !== undefined) emp.address = updates.address;
+    if (updates.photo_url !== undefined || updates.profile_picture !== undefined || updates.profilePicture !== undefined) {
+      const pic = updates.photo_url || updates.profile_picture || updates.profilePicture;
+      emp.profile_picture = saveBase64Image(pic);
+    }
 
     const user = await User.findByPk(emp.user_id);
 
@@ -533,11 +543,50 @@ export class EmployeeService {
   public async getEmployeeDashboardOverview(employeeId: number, userId: number) {
     const today = getTodayDateString();
     const currentYear = new Date().getFullYear();
+    const now = new Date();
+
+    // Ensure auto-absent rule is reflected if current time >= 11:00 AM on a working day
+    let todayAttendance = await Attendance.findOne({ where: { employee_id: employeeId, date: today } });
+    if (!todayAttendance && now.getDay() !== 0 && (now.getHours() > 11 || (now.getHours() === 11 && now.getMinutes() >= 0))) {
+      const holiday = await Holiday.findOne({ where: { date: today } });
+      const approvedLeave = await LeaveRequest.findOne({
+        where: {
+          employee_id: employeeId,
+          status: 'Approved',
+          start_date: { [Op.lte]: today },
+          end_date: { [Op.gte]: today },
+        },
+      });
+      if (!holiday && !approvedLeave) {
+        todayAttendance = await Attendance.create({
+          employee_id: employeeId,
+          date: today,
+          status: 'Absent',
+          clock_in: null,
+          clock_out: null,
+          working_hours: 0,
+          working_minutes: 0,
+          late_minutes: 0,
+          notes: 'Auto-marked Absent (Not logged in by 11:00 AM)',
+        });
+      } else if (approvedLeave) {
+        todayAttendance = await Attendance.create({
+          employee_id: employeeId,
+          date: today,
+          status: 'On Leave',
+          clock_in: null,
+          clock_out: null,
+          working_hours: 0,
+          working_minutes: 0,
+          late_minutes: 0,
+          notes: 'Approved Leave',
+        });
+      }
+    }
 
     const employee = await this.getEmployeeById(employeeId);
 
     const [
-      todayAttendance,
       leaveBalances,
       pendingLeavesCount,
       tasks,
@@ -550,7 +599,6 @@ export class EmployeeService {
       unreadNotificationsCount,
       birthdays,
     ] = await Promise.all([
-      Attendance.findOne({ where: { employee_id: employeeId, date: today } }),
       LeaveBalance.findAll({
         where: { employee_id: employeeId, year: currentYear },
         include: [{ model: LeaveType, as: 'leaveType' }],

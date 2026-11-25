@@ -1,7 +1,8 @@
 import crypto from 'crypto';
-import { User, Role, Permission, Employee, Department, Designation } from '../models';
+import { User, Role, Permission, Employee, Department, Designation, Attendance, AttendanceLog } from '../models';
 import { AppError } from '../utils/appError.util';
 import { comparePassword, hashPassword } from '../utils/password.util';
+import { getTodayDateString } from '../utils/dateUtils.util';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -107,6 +108,7 @@ export class AuthService {
       throw new AppError('This account is restricted to Admin Dashboard access.', 403);
     }
 
+    const loginTimestamp = Date.now();
     const jwtPayload: JwtUserPayload = {
       userId: user.id,
       employeeId: safeUser.employee?.id ?? null,
@@ -114,14 +116,73 @@ export class AuthService {
       role: safeUser.role,
       dashboardAccess: user.dashboard_access,
       permissions: safeUser.permissions,
+      loginTimestamp,
     };
 
     const accessToken = generateAccessToken(jwtPayload);
     const refreshToken = generateRefreshToken(jwtPayload);
 
-    user.last_login_at = new Date();
+    user.last_login_at = new Date(loginTimestamp);
     user.refresh_token_hash = await hashPassword(refreshToken);
     await user.save();
+
+    // Automatic Attendance registration upon Employee Login according to Office Policy
+    if (safeUser.employee && safeUser.role !== 'Admin') {
+      try {
+        const today = getTodayDateString();
+        const existingAttendance = await Attendance.findOne({
+          where: { employee_id: safeUser.employee.id, date: today },
+        });
+
+        // Register clock_in if no attendance yet, or if marked Absent/Not Clocked In without clock_in
+        if (!existingAttendance || !existingAttendance.clock_in) {
+          const now = new Date();
+          const startMinutes = 9 * 60 + 30; // 09:30 AM = 570 mins
+          const graceThreshold = 9 * 60 + 45; // 09:45 AM = 585 mins
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+          let lateMinutes = 0;
+          let status: 'Present' | 'Late' = 'Present';
+
+          if (nowMinutes > graceThreshold) {
+            lateMinutes = nowMinutes - startMinutes;
+            status = 'Late';
+          }
+
+          let attendanceRecord: Attendance;
+          if (existingAttendance) {
+            existingAttendance.clock_in = now;
+            existingAttendance.late_minutes = lateMinutes;
+            existingAttendance.status = status;
+            await existingAttendance.save();
+            attendanceRecord = existingAttendance;
+          } else {
+            attendanceRecord = await Attendance.create({
+              employee_id: safeUser.employee.id,
+              date: today,
+              clock_in: now,
+              late_minutes: lateMinutes,
+              working_minutes: 0,
+              working_hours: 0,
+              status,
+              is_corrected: false,
+              is_approved: false,
+            });
+          }
+
+          await AttendanceLog.create({
+            attendance_id: attendanceRecord.id,
+            employee_id: safeUser.employee.id,
+            action: 'CLOCK_IN',
+            timestamp: now,
+            ip_address: ipAddress || null,
+            metadata: JSON.stringify({ source: 'LOGIN', lateMinutes, status }),
+          });
+        }
+      } catch (attErr) {
+        // Non-blocking for login response
+      }
+    }
 
     await auditLogService.log({
       userId: user.id,
