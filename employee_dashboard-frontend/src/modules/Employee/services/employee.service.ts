@@ -5,7 +5,7 @@ import hrmsApi from '../../../services/hrmsApi.service';
 import { getStoredToken } from '../../../api/apiClient';
 import { getAssetUrl } from '../../../config/env.config';
 
-const STORAGE_KEY = 'ems_employees_directory_live_v1';
+const STORAGE_KEY = 'ems_employees_directory_live_v2';
 
 class EmployeeService {
   private employees: Employee[] = [];
@@ -17,6 +17,7 @@ class EmployeeService {
   private loadFromStorage(): void {
     try {
       // Clear legacy dummy data keys if present
+      localStorage.removeItem('ems_employees_directory_live_v1');
       localStorage.removeItem('ems_employees_data_clean_v1');
       localStorage.removeItem('ems_employees_data_v4');
       localStorage.removeItem('ems_employees_data_v3');
