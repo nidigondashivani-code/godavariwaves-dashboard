@@ -34,6 +34,35 @@ interface EmployeeTableProps {
   onSort: (field: SortField) => void;
 }
 
+const TableAvatar: React.FC<{ photoUrl?: string; name: string }> = ({ photoUrl, name }) => {
+  const [failed, setFailed] = useState(false);
+  const src = getAssetUrl(photoUrl);
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'EM';
+
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100 shadow-sm shrink-0"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
+      {initials}
+    </div>
+  );
+};
+
 export const EmployeeTable: React.FC<EmployeeTableProps> = ({
   employees,
   selectedIds,
@@ -142,20 +171,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
 
                 {/* Photo */}
                 <td className="px-4 py-3.5">
-                  {emp.photoUrl ? (
-                    <img
-                      src={getAssetUrl(emp.photoUrl) || emp.photoUrl}
-                      alt={`${emp.firstName} ${emp.lastName}`}
-                      className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100 shadow-sm"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs shadow-sm">
-                      {initials}
-                    </div>
-                  )}
+                  <TableAvatar photoUrl={emp.photoUrl} name={`${emp.firstName} ${emp.lastName}`} />
                 </td>
 
                 {/* ID */}

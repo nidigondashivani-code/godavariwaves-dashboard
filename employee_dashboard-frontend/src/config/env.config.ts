@@ -11,8 +11,12 @@ export const getAssetUrl = (rawPath?: string | null): string | null => {
   let path = rawPath.trim();
   if (!path) return null;
 
-  // If a localhost / 127.0.0.1 URL was saved in storage or state, strip the local origin
-  if (path.includes('localhost:') || path.includes('127.0.0.1:')) {
+  // Clean localhost, 127.0.0.1, or misconfigured backend hosts (e.g. godavariwaves-backend)
+  if (
+    path.includes('localhost:') ||
+    path.includes('127.0.0.1:') ||
+    path.includes('godavariwaves-backend.onrender.com')
+  ) {
     path = path.replace(/^https?:\/\/[^/]+/, '');
   }
 
@@ -20,29 +24,28 @@ export const getAssetUrl = (rawPath?: string | null): string | null => {
   if (
     path.startsWith('data:image/') ||
     path.startsWith('blob:') ||
-    path.startsWith('https://')
+    (path.startsWith('https://') && !path.includes('godavariwaves-backend.onrender.com'))
   ) {
     return path;
   }
 
-  // If non-local HTTP link
+  // If non-local external HTTP link
   if (path.startsWith('http://') && !path.includes('localhost') && !path.includes('127.0.0.1')) {
     return path;
   }
 
-  // Determine backend origin
-  const isBrowser = typeof window !== 'undefined';
-  const isRemoteEnv = isBrowser && window.location.hostname && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1');
+  // Assets are served by the REST API backend origin
+  let base = PROD_BACKEND_ORIGIN;
+  const apiBase = envConfig.apiBaseUrl;
 
-  let base = envConfig.socketUrl;
-  const isLocalBase = !base || base.includes('localhost') || base.includes('127.0.0.1');
-
-  if (isRemoteEnv || isLocalBase) {
-    const apiBase = envConfig.apiBaseUrl;
-    if (apiBase && apiBase.startsWith('http') && !apiBase.includes('localhost') && !apiBase.includes('127.0.0.1')) {
+  if (apiBase && apiBase.startsWith('http')) {
+    // If apiBaseUrl is localhost and we are running on localhost, use localhost
+    const isBrowser = typeof window !== 'undefined';
+    const isLocalBrowser = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocalBrowser && (apiBase.includes('localhost') || apiBase.includes('127.0.0.1'))) {
       base = apiBase.replace(/\/api(\/v\d+)?\/?$/, '');
-    } else {
-      base = PROD_BACKEND_ORIGIN;
+    } else if (!apiBase.includes('localhost') && !apiBase.includes('127.0.0.1')) {
+      base = apiBase.replace(/\/api(\/v\d+)?\/?$/, '');
     }
   }
 
