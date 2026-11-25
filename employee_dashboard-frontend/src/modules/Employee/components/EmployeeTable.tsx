@@ -16,6 +16,7 @@ import {
 import { Employee, SortField, SortOrder } from '../types/employee.types';
 import DepartmentBadge from './DepartmentBadge';
 import DashboardAccessToggle from './DashboardAccessToggle';
+import { getAssetUrl } from '../../../config/env.config';
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -143,7 +144,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                 <td className="px-4 py-3.5">
                   {emp.photoUrl ? (
                     <img
-                      src={emp.photoUrl}
+                      src={getAssetUrl(emp.photoUrl) || emp.photoUrl}
                       alt={`${emp.firstName} ${emp.lastName}`}
                       className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100 shadow-sm"
                       onError={(e) => {

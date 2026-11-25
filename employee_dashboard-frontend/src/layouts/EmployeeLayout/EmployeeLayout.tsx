@@ -576,7 +576,21 @@ export const EmployeeLayout: React.FC = () => {
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-blue-600 text-xs font-bold text-white shadow-sm">
                   {avatarUrl ? (
-                    <img alt={displayName} className="h-full w-full object-cover" src={avatarUrl} />
+                    <img
+                      alt={displayName}
+                      className="h-full w-full object-cover"
+                      src={avatarUrl}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent && !parent.querySelector('.initials-fallback')) {
+                          const span = document.createElement('span');
+                          span.className = 'initials-fallback text-xs font-bold text-white';
+                          span.textContent = initials;
+                          parent.appendChild(span);
+                        }
+                      }}
+                    />
                   ) : (
                     initials
                   )}

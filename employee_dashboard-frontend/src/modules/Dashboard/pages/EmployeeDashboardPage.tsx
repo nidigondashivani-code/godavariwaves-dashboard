@@ -110,6 +110,11 @@ export const EmployeeDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [apiNotice, setApiNotice] = useState<string | null>(null);
   const [clockLoading, setClockLoading] = useState(false);
+  const [profileImgFailed, setProfileImgFailed] = useState(false);
+
+  useEffect(() => {
+    setProfileImgFailed(false);
+  }, [data?.employee?.profile_picture]);
 
   // Mandatory Daily Work Update modal state for clocking out / logging out
   const [isClockOutModalOpen, setIsClockOutModalOpen] = useState(false);
@@ -372,14 +377,12 @@ export const EmployeeDashboardPage: React.FC = () => {
       {/* Top Page Title & Quick Actions — exact AdminDashboardPage heading typography */}
       <div className="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3.5">
-          {employee.profile_picture ? (
+          {employee.profile_picture && !profileImgFailed ? (
             <img
               src={getAssetUrl(employee.profile_picture) || ''}
               alt={employee.full_name}
               className="h-12 w-12 rounded-2xl border border-slate-200 object-cover shadow-sm ring-2 ring-blue-50"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
+              onError={() => setProfileImgFailed(true)}
             />
           ) : (
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-sm ring-2 ring-blue-50">

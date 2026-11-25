@@ -29,6 +29,7 @@ class EmployeeService {
         if (Array.isArray(parsed)) {
           this.employees = parsed.map((emp) => ({
             ...emp,
+            photoUrl: emp.photoUrl ? (getAssetUrl(emp.photoUrl) || emp.photoUrl) : undefined,
             inactivityReason:
               emp.status === 'Inactive' ? emp.inactivityReason || 'Resigned' : undefined,
           }));

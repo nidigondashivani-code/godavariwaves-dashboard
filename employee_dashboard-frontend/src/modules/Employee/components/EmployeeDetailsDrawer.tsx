@@ -18,6 +18,7 @@ import {
 import { Employee } from '../types/employee.types';
 import StatusBadge from './StatusBadge';
 import DepartmentBadge from './DepartmentBadge';
+import { getAssetUrl } from '../../../config/env.config';
 
 interface EmployeeDetailsDrawerProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export const EmployeeDetailsDrawer: React.FC<EmployeeDetailsDrawerProps> = ({
             <div className="flex items-center gap-4">
               {employee.photoUrl && !imageFailed ? (
                 <img
-                  src={employee.photoUrl}
+                  src={getAssetUrl(employee.photoUrl) || employee.photoUrl}
                   alt={`${employee.firstName} ${employee.lastName}`}
                   className="w-16 h-16 rounded-full object-cover ring-4 ring-white/20 shadow-lg"
                   onError={() => setImageFailed(true)}

@@ -4,6 +4,7 @@ import { Employee } from '../types/employee.types';
 import StatusBadge from './StatusBadge';
 import DepartmentBadge from './DepartmentBadge';
 import DashboardAccessToggle from './DashboardAccessToggle';
+import { getAssetUrl } from '../../../config/env.config';
 
 interface EmployeeCardProps {
   employee: Employee;
@@ -62,9 +63,12 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
         <div className="flex items-start gap-3.5 mb-4">
           {employee.photoUrl ? (
             <img
-              src={employee.photoUrl}
+              src={getAssetUrl(employee.photoUrl) || employee.photoUrl}
               alt={`${employee.firstName} ${employee.lastName}`}
               className="w-12 h-12 rounded-full object-cover ring-2 ring-slate-100 shadow-sm shrink-0"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
