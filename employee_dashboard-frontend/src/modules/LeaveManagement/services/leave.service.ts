@@ -17,8 +17,8 @@ import { rolePermissionsService } from '../../RolePermissions/services/rolePermi
 import { apiClient } from '../../../api/apiClient';
 import { getAssetUrl } from '../../../config/env.config';
 
-const LEAVE_STORAGE_KEY = 'ems_admin_leave_requests_v1';
-const BALANCE_STORAGE_KEY = 'ems_admin_leave_balances_v1';
+const LEAVE_STORAGE_KEY = 'ems_admin_leave_requests_v3';
+const BALANCE_STORAGE_KEY = 'ems_admin_leave_balances_v3';
 const LEGACY_SEEDED_REQUEST_IDS = new Set([
   'LR-2026-001',
   'LR-2026-002',
@@ -145,11 +145,7 @@ class LeaveService {
           employeePhoto: item.employee?.profile_picture ? (getAssetUrl(item.employee.profile_picture) || undefined) : undefined,
         }));
 
-        // Keep local requests that aren't on backend
-        const localOnly = this.requests.filter(
-          (r) => !backendRequests.some((b) => b.id === r.id) && !LEGACY_SEEDED_REQUEST_IDS.has(r.id)
-        );
-        this.requests = [...backendRequests, ...localOnly];
+        this.requests = backendRequests;
         this.saveRequests();
         return this.getLeaveRequests();
       }

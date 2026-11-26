@@ -15,9 +15,9 @@ import type {
   WorkUpdateStatus,
 } from '../types/workUpdate.types';
 
-const UPDATES_KEY = 'ems_daily_work_updates_v1';
-const AUDIT_KEY = 'ems_daily_work_update_audit_v1';
-const NOTIFICATION_KEYS_KEY = 'ems_daily_work_update_notification_keys_v1';
+const UPDATES_KEY = 'ems_daily_work_updates_v3';
+const AUDIT_KEY = 'ems_daily_work_update_audit_v3';
+const NOTIFICATION_KEYS_KEY = 'ems_daily_work_update_notification_keys_v3';
 
 export interface SubmitDailyWorkUpdateInput {
   employeeKey: string;
@@ -156,9 +156,7 @@ class WorkUpdateService {
           };
         });
 
-        const currentUpdates = this.readArray<DailyWorkUpdate>(UPDATES_KEY);
-        const filteredCurrent = currentUpdates.filter((cu) => !updates.some((u) => u.id === cu.id));
-        this.writeArray(UPDATES_KEY, [...updates, ...filteredCurrent]);
+        this.writeArray(UPDATES_KEY, updates);
         this.notifyListeners();
         return this.getUpdates();
       }

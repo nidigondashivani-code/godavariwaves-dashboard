@@ -11,9 +11,9 @@ import {
 import { OFFICE_POLICY } from '../constants/attendance.constants';
 import { apiClient } from '../../../api/apiClient';
 
-const RECORDS_STORAGE_KEY = 'ems_admin_attendance_records_v1';
-const CORRECTIONS_STORAGE_KEY = 'ems_attendance_correction_requests_v1';
-const ALERTS_STORAGE_KEY = 'ems_attendance_alerts_v1';
+const RECORDS_STORAGE_KEY = 'ems_admin_attendance_records_v3';
+const CORRECTIONS_STORAGE_KEY = 'ems_attendance_correction_requests_v3';
+const ALERTS_STORAGE_KEY = 'ems_attendance_alerts_v3';
 
 const localDateString = (date: Date): string => {
   const year = date.getFullYear();
@@ -120,11 +120,7 @@ class AttendanceService {
           };
         });
 
-        const currentRecords = this.readArray<AttendanceRecord>(RECORDS_STORAGE_KEY);
-        const filteredCurrent = currentRecords.filter(
-          (cr) => !mappedRecords.some((mr) => mr.employeeKey === cr.employeeKey && mr.date === cr.date)
-        );
-        this.writeArray(RECORDS_STORAGE_KEY, [...mappedRecords, ...filteredCurrent]);
+        this.writeArray(RECORDS_STORAGE_KEY, mappedRecords);
         this.notifyListeners();
       }
     } catch (err) {

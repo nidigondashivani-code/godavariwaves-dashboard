@@ -8,7 +8,7 @@ import {
   NotificationSettings,
 } from '../types/notification.types';
 
-const STORAGE_KEY = 'ems_notifications_clean_v2';
+const STORAGE_KEY = 'ems_notifications_clean_v3';
 const SETTINGS_KEY = 'ems_notifications_settings_v1';
 const LEGACY_SIMULATED_NOTIFICATION_TITLES = new Set([
   'New Employee Profile Created',

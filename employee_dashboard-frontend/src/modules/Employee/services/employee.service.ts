@@ -5,7 +5,7 @@ import hrmsApi from '../../../services/hrmsApi.service';
 import { getStoredToken } from '../../../api/apiClient';
 import { getAssetUrl } from '../../../config/env.config';
 
-const STORAGE_KEY = 'ems_employees_directory_live_v2';
+const STORAGE_KEY = 'ems_employees_directory_live_v3';
 
 class EmployeeService {
   private employees: Employee[] = [];
@@ -17,6 +17,7 @@ class EmployeeService {
   private loadFromStorage(): void {
     try {
       // Clear legacy dummy data keys if present
+      localStorage.removeItem('ems_employees_directory_live_v2');
       localStorage.removeItem('ems_employees_directory_live_v1');
       localStorage.removeItem('ems_employees_data_clean_v1');
       localStorage.removeItem('ems_employees_data_v4');
@@ -333,7 +334,8 @@ class EmployeeService {
       const dept = r.department as { name?: string } | undefined;
       const desig = r.designation as { title?: string } | undefined;
       const usr = r.user as { role?: { name?: string }; is_active?: boolean; last_login_at?: string } | undefined;
-      const profilePic = r.profile_picture ? getAssetUrl(String(r.profile_picture)) : undefined;
+      const rawPic = r.profile_picture ? String(r.profile_picture) : undefined;
+      const profilePic = rawPic ? (getAssetUrl(rawPic) || rawPic) : undefined;
       return {
         id: String(r.id),
         employeeId: String(r.employee_code || ''),

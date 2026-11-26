@@ -25,6 +25,7 @@ import {
   generateTemporaryPassword,
   generateNextEmployeeId,
 } from '../utils/employee.utils';
+import { compressImage } from '../../../utils/imageCompressor';
 import DashboardAccessToggle from './DashboardAccessToggle';
 
 const MAX_PROFILE_PICTURE_SIZE = 2 * 1024 * 1024;
@@ -136,7 +137,7 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
     setTimeout(() => setCopiedPassword(false), 2000);
   };
 
-  const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
@@ -152,19 +153,13 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') {
-        setProfilePictureError('Could not read this image. Please choose another file.');
-        return;
-      }
-      setPhotoUrl(reader.result);
+    try {
+      const compressedDataUrl = await compressImage(file, 400, 400, 0.85);
+      setPhotoUrl(compressedDataUrl);
       setProfilePictureError('');
-    };
-    reader.onerror = () => {
-      setProfilePictureError('Could not read this image. Please choose another file.');
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      setProfilePictureError('Could not process this image. Please choose another file.');
+    }
   };
 
   const handleRemoveProfilePicture = () => {

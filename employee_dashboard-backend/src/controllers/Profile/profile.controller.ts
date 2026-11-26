@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { Request, Response, NextFunction } from 'express';
 import profileService from '../../services/profile.service';
 import { sendSuccess } from '../../utils/apiResponse.util';
@@ -16,11 +17,29 @@ export class ProfileController {
   public async uploadAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.file) throw new AppError('Please upload an image file.', 400);
-      const url = `/uploads/${req.file.filename}`;
+
+      // Convert uploaded file to base64 data URL for permanent database persistence
+      let dataUrl = `/uploads/${req.file.filename}`;
+      try {
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          const fileBuffer = fs.readFileSync(req.file.path);
+          const mimeType = req.file.mimetype || 'image/jpeg';
+          dataUrl = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
+          // Clean up local temp file
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // Fall back to relative path if conversion fails
+      }
+
       const result = await profileService.updateProfilePicture(
         req.user!.employeeId!,
         req.user!.userId,
-        url
+        dataUrl
       );
       sendSuccess(res, result, 'Profile picture updated');
     } catch (error) {

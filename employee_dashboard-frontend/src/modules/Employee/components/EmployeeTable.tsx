@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MoreVertical,
   Eye,
@@ -36,7 +36,7 @@ interface EmployeeTableProps {
 
 const TableAvatar: React.FC<{ photoUrl?: string; name: string }> = ({ photoUrl, name }) => {
   const [failed, setFailed] = useState(false);
-  const src = getAssetUrl(photoUrl);
+  const src = getAssetUrl(photoUrl) || photoUrl;
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -44,6 +44,10 @@ const TableAvatar: React.FC<{ photoUrl?: string; name: string }> = ({ photoUrl, 
     .join('')
     .slice(0, 2)
     .toUpperCase() || 'EM';
+
+  useEffect(() => {
+    setFailed(false);
+  }, [photoUrl]);
 
   if (src && !failed) {
     return (

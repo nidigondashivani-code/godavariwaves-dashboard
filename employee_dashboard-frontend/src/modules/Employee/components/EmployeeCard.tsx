@@ -20,7 +20,7 @@ interface EmployeeCardProps {
 
 const CardAvatar: React.FC<{ photoUrl?: string; name: string }> = ({ photoUrl, name }) => {
   const [failed, setFailed] = React.useState(false);
-  const src = getAssetUrl(photoUrl);
+  const src = getAssetUrl(photoUrl) || photoUrl;
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -28,6 +28,10 @@ const CardAvatar: React.FC<{ photoUrl?: string; name: string }> = ({ photoUrl, n
     .join('')
     .slice(0, 2)
     .toUpperCase() || 'EM';
+
+  React.useEffect(() => {
+    setFailed(false);
+  }, [photoUrl]);
 
   if (src && !failed) {
     return (
