@@ -209,11 +209,16 @@ const run = async () => {
       const rolesRes = await apiRequest(baseUrl, 'GET', '/roles', adminToken);
       assert('E2E: Roles & Permissions API returns roles', rolesRes.status === 200 && rolesRes.json.data.length >= 2);
 
-      const uniqueEmail = `e2e.emp.${Date.now()}@godavariwaves.com`;
+      const uniqueEmail = `e2e.emp.${Date.now()}@gmail.com`;
+      const uniquePhone = `9${String(Date.now()).slice(-9)}`;
+      const empPassword = 'Employee@123';
       const createdEmp = await apiRequest(baseUrl, 'POST', '/employees', adminToken, {
         first_name: 'Kiran',
         last_name: 'Verma',
         company_email: uniqueEmail,
+        phone: uniquePhone,
+        password: empPassword,
+        confirm_password: empPassword,
         department_id: swDeptId,
         designation_id: desigs.json.data[0].id,
         joining_date: '2026-11-01',
@@ -221,7 +226,6 @@ const run = async () => {
       });
       assert('E2E: Admin creates employee & generates credentials', createdEmp.status === 201);
       const empId = createdEmp.json.data.employee.id;
-      const empPassword = createdEmp.json.data.generatedCredentials.temporaryPassword;
 
       const assignLead = await apiRequest(baseUrl, 'POST', `/departments/${swDeptId}/team-leads`, adminToken, { employee_id: empId });
       assert('E2E: Admin assigns employee as Department Team Lead', assignLead.status === 201);
@@ -242,8 +246,11 @@ const run = async () => {
       const react = await apiRequest(baseUrl, 'PATCH', `/employees/${empId}/activate`, adminToken);
       assert('E2E: Admin reactivates employee', react.status === 200);
 
-      const reset = await apiRequest(baseUrl, 'POST', `/employees/${empId}/reset-password`, adminToken, {});
-      assert('E2E: Admin resets employee password', reset.status === 200 && Boolean(reset.json.data.temporaryPassword));
+      const reset = await apiRequest(baseUrl, 'POST', `/employees/${empId}/reset-password`, adminToken, {
+        newPassword: 'Welcome#2025',
+        confirmPassword: 'Welcome#2025',
+      });
+      assert('E2E: Admin resets employee password', reset.status === 200 && Boolean(reset.json.data.passwordReset));
 
       const softDel = await apiRequest(baseUrl, 'DELETE', `/employees/${empId}`, adminToken);
       assert('E2E: Admin soft-deletes employee preserving history', softDel.status === 200);

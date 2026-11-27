@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit2, Building, ShieldCheck } from 'lucide-react';
+import { X, Edit2, Building, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import {
   DEPARTMENTS,
   ROLES,
@@ -8,13 +8,18 @@ import {
 } from '../constants/employee.constants';
 import designationService from '../services/designation.service';
 import { Employee, DepartmentType, RoleType, EmploymentType, GenderType, EmployeeStatusType } from '../types/employee.types';
+import {
+  validateCompanyEmail,
+  validatePhoneNumber,
+  validateRequiredText,
+} from '../utils/employeeValidation';
 import DashboardAccessToggle from './DashboardAccessToggle';
 
 interface EditEmployeeDrawerProps {
   isOpen: boolean;
   employee: Employee | null;
   onClose: () => void;
-  onSave: (id: string, updates: Partial<Employee>) => void;
+  onSave: (id: string, updates: Partial<Employee>) => Promise<boolean> | boolean | void;
   existingEmployees: Employee[];
 }
 
@@ -33,6 +38,7 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
   const [address, setAddress] = useState('');
 
   // Company Information
+  const [companyEmail, setCompanyEmail] = useState('');
   const [department, setDepartment] = useState<DepartmentType>('Software Development');
   const [designation, setDesignation] = useState('');
   const [reportingManagerId, setReportingManagerId] = useState('');
@@ -40,15 +46,18 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
   const [role, setRole] = useState<RoleType>('Employee');
   const [status, setStatus] = useState<EmployeeStatusType>('Active');
   const [dashboardAccess, setDashboardAccess] = useState(true);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (employee) {
+    if (employee && isOpen) {
       setFirstName(employee.firstName || '');
       setLastName(employee.lastName || '');
       setGender(employee.gender || 'Male');
       setMobileNumber(employee.mobileNumber || '');
       setPersonalEmail(employee.personalEmail || '');
       setAddress(employee.address || '');
+      setCompanyEmail(employee.companyEmail || '');
 
       setDepartment(
         (DEPARTMENTS.includes(employee.department as DepartmentType)
@@ -61,8 +70,15 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
       setRole(employee.role || 'Employee');
       setStatus(employee.status || 'Active');
       setDashboardAccess(employee.dashboardAccess);
+      setTouched({
+        firstName: true,
+        lastName: true,
+        mobileNumber: true,
+        companyEmail: true,
+      });
+      setIsSubmitting(false);
     }
-  }, [employee]);
+  }, [employee, isOpen]);
 
   // Dynamic designations from designationService
   const [designationsByDept, setDesignationsByDept] = useState(() => designationService.getDesignations());
@@ -81,33 +97,74 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const markTouched = (field: string) => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
+
+  const firstNameError = validateRequiredText(firstName, 'First Name');
+  const lastNameError = validateRequiredText(lastName, 'Last Name');
+  const mobileNumberError = validatePhoneNumber(mobileNumber, existingEmployees, employee?.id);
+  const companyEmailError = validateCompanyEmail(companyEmail, existingEmployees, employee?.id);
+  const departmentError = !department ? 'Department is required.' : null;
+  const designationError = !designation ? 'Designation is required.' : null;
+
+  const isFormValid =
+    !firstNameError &&
+    !lastNameError &&
+    !mobileNumberError &&
+    !companyEmailError &&
+    !departmentError &&
+    !designationError;
+
+  const getFieldBorderClass = (field: string, error: string | null) => {
+    if (!touched[field]) return 'border-slate-300 focus:ring-blue-600';
+    return error
+      ? 'border-rose-500 focus:ring-rose-500'
+      : 'border-emerald-500 focus:ring-emerald-500';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employee) return;
+    setTouched({
+      firstName: true,
+      lastName: true,
+      mobileNumber: true,
+      companyEmail: true,
+    });
+    if (!isFormValid || isSubmitting) return;
 
     const reportingManager = existingEmployees.find((e) => e.id === reportingManagerId);
+    setIsSubmitting(true);
 
-    onSave(employee.id, {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      gender,
-      mobileNumber: mobileNumber.trim(),
-      personalEmail: personalEmail.trim(),
-      address: address.trim(),
-      department,
-      designation,
-      reportingManagerId: reportingManagerId || undefined,
-      reportingManagerName: reportingManager
-        ? `${reportingManager.firstName} ${reportingManager.lastName}`
-        : undefined,
-      employmentType,
-      role,
-      status,
-      dashboardAccess: status === 'Inactive' ? false : dashboardAccess,
-      updatedBy: 'Admin',
-    });
+    try {
+      const result = await onSave(employee.id, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        gender,
+        mobileNumber: mobileNumber.trim(),
+        personalEmail: personalEmail.trim(),
+        address: address.trim(),
+        companyEmail: companyEmail.trim().toLowerCase(),
+        department,
+        designation,
+        reportingManagerId: reportingManagerId || undefined,
+        reportingManagerName: reportingManager
+          ? `${reportingManager.firstName} ${reportingManager.lastName}`
+          : undefined,
+        employmentType,
+        role,
+        status,
+        dashboardAccess: status === 'Inactive' ? false : dashboardAccess,
+        updatedBy: 'Admin',
+      });
 
-    onClose();
+      if (result !== false) {
+        onClose();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen || !employee) return null;
@@ -152,25 +209,49 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">First Name</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  First Name <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    markTouched('firstName');
+                  }}
+                  onBlur={() => markTouched('firstName')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'firstName',
+                    firstNameError
+                  )}`}
                 />
+                {touched.firstName && firstNameError && (
+                  <p className="mt-1 text-xs text-rose-600">{firstNameError}</p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Last Name <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    markTouched('lastName');
+                  }}
+                  onBlur={() => markTouched('lastName')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'lastName',
+                    lastNameError
+                  )}`}
                 />
+                {touched.lastName && lastNameError && (
+                  <p className="mt-1 text-xs text-rose-600">{lastNameError}</p>
+                )}
               </div>
 
               <div>
@@ -189,14 +270,32 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Mobile Number <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="tel"
-                  placeholder="+91 98765 43210"
+                  required
+                  placeholder="9876543210"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setMobileNumber(e.target.value);
+                    markTouched('mobileNumber');
+                  }}
+                  onBlur={() => markTouched('mobileNumber')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'mobileNumber',
+                    mobileNumberError
+                  )}`}
                 />
+                {touched.mobileNumber && mobileNumberError && (
+                  <p className="mt-1 text-xs text-rose-600">{mobileNumberError}</p>
+                )}
+                {touched.mobileNumber && !mobileNumberError && (
+                  <p className="mt-1 text-[11px] text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Valid 10-digit mobile number
+                  </p>
+                )}
               </div>
 
               <div className="sm:col-span-2">
@@ -228,6 +327,35 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Company Email <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="employee@gmail.com"
+                  value={companyEmail}
+                  onChange={(e) => {
+                    setCompanyEmail(e.target.value);
+                    markTouched('companyEmail');
+                  }}
+                  onBlur={() => markTouched('companyEmail')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'companyEmail',
+                    companyEmailError
+                  )}`}
+                />
+                {touched.companyEmail && companyEmailError && (
+                  <p className="mt-1 text-xs text-rose-600">{companyEmailError}</p>
+                )}
+                {touched.companyEmail && !companyEmailError && (
+                  <p className="mt-1 text-[11px] text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Valid Gmail address
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Department</label>
                 <select
@@ -348,9 +476,10 @@ export const EditEmployeeDrawer: React.FC<EditEmployeeDrawerProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md transition"
+              disabled={!isFormValid || isSubmitting}
+              className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md transition"
             >
-              Save Changes
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>

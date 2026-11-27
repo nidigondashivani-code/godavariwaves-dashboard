@@ -248,22 +248,20 @@ class EmployeeService {
     return updated;
   }
 
-  public resetPassword(id: string, newPassword: string): Employee | null {
-    const updated = this.updateEmployee(id, {
-      temporaryPassword: newPassword,
-    });
-    if (updated) {
+  public resetPassword(id: string, _newPassword: string): Employee | null {
+    const existing = this.getEmployeeById(id);
+    if (existing) {
       notificationService.addNotification({
-        title: 'Temporary Password Reset',
-        description: `New credentials generated for ${updated.firstName} ${updated.lastName}.`,
+        title: 'Password Reset',
+        description: `Password updated securely for ${existing.firstName} ${existing.lastName}.`,
         category: 'employee',
         priority: 'medium',
-        employeeName: `${updated.firstName} ${updated.lastName}`,
-        employeeId: updated.employeeId,
-        department: updated.department,
+        employeeName: `${existing.firstName} ${existing.lastName}`,
+        employeeId: existing.employeeId,
+        department: existing.department,
       });
     }
-    return updated;
+    return existing || null;
   }
 
   public bulkAction(
@@ -381,8 +379,8 @@ class EmployeeService {
     return hrmsApi.toggleDashboardAccess(id, enabled);
   }
 
-  public async resetPasswordOnBackend(id: number, newPassword?: string) {
-    return hrmsApi.resetEmployeePassword(id, newPassword);
+  public async resetPasswordOnBackend(id: number, newPassword: string, confirmPassword: string) {
+    return hrmsApi.resetEmployeePassword(id, newPassword, confirmPassword);
   }
 
   public async softDeleteEmployeeOnBackend(id: number) {

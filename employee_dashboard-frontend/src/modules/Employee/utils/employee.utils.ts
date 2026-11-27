@@ -2,14 +2,14 @@ import { Employee } from '../types/employee.types';
 
 /**
  * Generate unique company email address based on first and last name.
- * Example: John Smith -> john.smith@company.com
- * If duplicate exists -> john.smith01@company.com, john.smith02@company.com, etc.
+ * Example: John Smith -> john.smith@gmail.com
+ * If duplicate exists -> john.smith01@gmail.com, john.smith02@gmail.com, etc.
  */
 export function generateCompanyEmail(
   firstName: string,
   lastName: string,
   existingEmails: string[] = [],
-  domain: string = 'company.com'
+  domain: string = 'gmail.com'
 ): string {
   const cleanFirst = firstName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
   const cleanLast = lastName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');

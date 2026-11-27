@@ -289,10 +289,12 @@ export const ManageEmployeesPage: React.FC = () => {
 
   // CRUD Event Handlers (backed by real MySQL Express APIs — never fake success or store plaintext passwords)
   const handleSaveNewEmployee = async (
-    data: Omit<Employee, 'id' | 'createdAt' | 'employmentHistory' | 'loginHistory'>
-  ) => {
+    data: Omit<Employee, 'id' | 'createdAt' | 'employmentHistory' | 'loginHistory'> & {
+      confirmPassword?: string;
+    }
+  ): Promise<boolean> => {
     try {
-      const result = await employeeService.createEmployeeOnBackend({
+      await employeeService.createEmployeeOnBackend({
         employee_code: data.employeeId,
         first_name: data.firstName,
         last_name: data.lastName,
@@ -311,34 +313,41 @@ export const ManageEmployeesPage: React.FC = () => {
         address: data.address || null,
         dashboard_access: data.role === 'Admin' ? 'both' : 'employee',
         dashboard_access_enabled: Boolean(data.dashboardAccess),
-        temporary_password: data.temporaryPassword,
+        password: data.temporaryPassword,
+        confirm_password: data.confirmPassword,
       });
       await refreshEmployees();
-      const creds = result?.generatedCredentials;
       addToast(
         'success',
         'Employee Created in MySQL',
-        `${data.firstName} ${data.lastName} (${data.employeeId}) saved securely.${
-          creds?.temporaryPassword ? ' Temporary credentials are ready for first login.' : ''
-        }`
+        `${data.firstName} ${data.lastName} (${data.employeeId}) saved securely.`
       );
+      return true;
     } catch (err) {
       addToast('error', 'Failed to Create Employee', extractApiError(err, 'Unable to save employee to database.'));
+      return false;
     }
   };
 
-  const handleSaveEditEmployee = async (id: string, updates: Partial<Employee>) => {
+  const handleSaveEditEmployee = async (id: string, updates: Partial<Employee>): Promise<boolean> => {
     try {
       const numericId = Number(id);
       if (Number.isFinite(numericId) && numericId > 0) {
         await employeeService.updateEmployeeOnBackend(numericId, {
           first_name: updates.firstName,
           last_name: updates.lastName,
+          company_email: updates.companyEmail,
           phone: updates.mobileNumber,
+          gender: updates.gender,
+          department_name: updates.department,
+          designation_title: updates.designation,
+          role_name: updates.role,
+          reporting_manager_id: updates.reportingManagerId ? Number(updates.reportingManagerId) : null,
           photo_url: updates.photoUrl,
           profile_picture: updates.photoUrl,
           employment_type: updates.employmentType,
           employment_status: updates.status,
+          dashboard_access_enabled: updates.dashboardAccess,
           joining_date: updates.joiningDate,
           date_of_birth: updates.dateOfBirth,
           address: updates.address,
@@ -346,8 +355,10 @@ export const ManageEmployeesPage: React.FC = () => {
       }
       await refreshEmployees();
       addToast('success', 'Employee Updated', 'Employee record updated in database.');
+      return true;
     } catch (err) {
       addToast('error', 'Update Failed', extractApiError(err, 'Unable to update employee.'));
+      return false;
     }
   };
 
@@ -419,10 +430,18 @@ export const ManageEmployeesPage: React.FC = () => {
     }
   };
 
-  const handleResetPassword = async (newPassword: string, sendEmail: boolean) => {
-    if (!passwordResetEmployee) return;
+  const handleResetPassword = async (
+    newPassword: string,
+    confirmPassword: string,
+    sendEmail: boolean
+  ): Promise<boolean> => {
+    if (!passwordResetEmployee) return false;
     try {
-      await employeeService.resetPasswordOnBackend(Number(passwordResetEmployee.id), newPassword);
+      await employeeService.resetPasswordOnBackend(
+        Number(passwordResetEmployee.id),
+        newPassword,
+        confirmPassword
+      );
       await refreshEmployees();
       addToast(
         'success',
@@ -432,8 +451,10 @@ export const ManageEmployeesPage: React.FC = () => {
         }`
       );
       setPasswordResetEmployee(null);
+      return true;
     } catch (err) {
       addToast('error', 'Password Reset Failed', extractApiError(err));
+      return false;
     }
   };
 

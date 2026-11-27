@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Copy,
   Check,
+  CheckCircle2,
   Eye,
   EyeOff,
   Sparkles,
@@ -25,6 +26,14 @@ import {
   generateTemporaryPassword,
   generateNextEmployeeId,
 } from '../utils/employee.utils';
+import {
+  validateCompanyEmail,
+  validatePhoneNumber,
+  validatePassword,
+  validateConfirmPassword,
+  validateRequiredText,
+  validateEmployeeId,
+} from '../utils/employeeValidation';
 import { compressImage } from '../../../utils/imageCompressor';
 import DashboardAccessToggle from './DashboardAccessToggle';
 
@@ -33,7 +42,11 @@ const MAX_PROFILE_PICTURE_SIZE = 2 * 1024 * 1024;
 interface AddEmployeeDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (employee: Omit<Employee, 'id' | 'createdAt' | 'employmentHistory' | 'loginHistory'>) => void;
+  onSave: (
+    employee: Omit<Employee, 'id' | 'createdAt' | 'employmentHistory' | 'loginHistory'> & {
+      confirmPassword?: string;
+    }
+  ) => Promise<boolean> | boolean | void;
   existingEmployees: Employee[];
 }
 
@@ -68,11 +81,15 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
   const [isEmailCustomized, setIsEmailCustomized] = useState(false);
   const [passwordMode, setPasswordMode] = useState<'manual' | 'auto'>('manual');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(true);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(true);
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [role, setRole] = useState<RoleType>('Employee');
   const [dashboardAccess, setDashboardAccess] = useState(true);
   const [sendCredentialsMail, setSendCredentialsMail] = useState(true);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dynamic designations based on selected department from designationService
   const [designationsByDept, setDesignationsByDept] = useState(() => designationService.getDesignations());
@@ -108,8 +125,11 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
       setIsEmailCustomized(false);
       setPasswordMode('manual');
       setPassword('');
+      setConfirmPassword('');
       setRole('Employee');
       setDashboardAccess(true);
+      setTouched({});
+      setIsSubmitting(false);
     }
   }, [isOpen, existingEmployees, designationsByDept]);
 
@@ -170,46 +190,102 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const markTouched = (field: string) => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
+
+  // Real-time field validation
+  const firstNameError = validateRequiredText(firstName, 'First Name');
+  const lastNameError = validateRequiredText(lastName, 'Last Name');
+  const mobileNumberError = validatePhoneNumber(mobileNumber, existingEmployees);
+  const employeeIdError = validateEmployeeId(employeeId, existingEmployees);
+  const departmentError = !department ? 'Department is required.' : null;
+  const designationError = !designation ? 'Designation is required.' : null;
+  const companyEmailError = validateCompanyEmail(companyEmail, existingEmployees);
+  const passwordError = validatePassword(password);
+  const confirmPasswordError = validateConfirmPassword(password, confirmPassword);
+
+  const isFormValid =
+    !firstNameError &&
+    !lastNameError &&
+    !mobileNumberError &&
+    !employeeIdError &&
+    !departmentError &&
+    !designationError &&
+    !companyEmailError &&
+    !passwordError &&
+    !confirmPasswordError &&
+    !profilePictureError;
+
+  const getFieldBorderClass = (field: string, error: string | null, forceShow = false) => {
+    const show = Boolean(touched[field] || forceShow);
+    if (!show) return 'border-slate-300 focus:ring-blue-600';
+    return error
+      ? 'border-rose-500 focus:ring-rose-500'
+      : 'border-emerald-500 focus:ring-emerald-500';
+  };
+
+  const shouldShowError = (field: string, error: string | null, forceShow = false) =>
+    Boolean((touched[field] || forceShow) && error);
+
+  const shouldShowValid = (field: string, error: string | null, forceShow = false) =>
+    Boolean((touched[field] || forceShow) && !error);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName.trim() || !lastName.trim() || !companyEmail.trim()) {
-      alert('Please fill in required fields: First Name, Last Name, and Company Email.');
-      return;
-    }
-    if (!password.trim() || password.trim().length < 6) {
-      alert('Please enter or generate a password (minimum 6 characters) for this employee.');
+    setTouched({
+      firstName: true,
+      lastName: true,
+      mobileNumber: true,
+      employeeId: true,
+      department: true,
+      designation: true,
+      companyEmail: true,
+      password: true,
+      confirmPassword: true,
+    });
+
+    if (!isFormValid || isSubmitting) {
       return;
     }
 
     const reportingManager = existingEmployees.find((e) => e.id === reportingManagerId);
+    setIsSubmitting(true);
 
-    onSave({
-      employeeId: employeeId.trim() || generateNextEmployeeId(existingEmployees),
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      gender,
-      dateOfBirth,
-      mobileNumber: mobileNumber.trim(),
-      personalEmail: personalEmail.trim(),
-      address: address.trim(),
-      photoUrl: photoUrl || undefined,
-      department,
-      designation,
-      reportingManagerId: reportingManagerId || undefined,
-      reportingManagerName: reportingManager
-        ? `${reportingManager.firstName} ${reportingManager.lastName}`
-        : undefined,
-      employmentType,
-      joiningDate,
-      companyEmail: companyEmail.trim(),
-      temporaryPassword: password,
-      role,
-      dashboardAccess,
-      status: 'Active',
-      createdBy: 'Admin',
-    });
+    try {
+      const result = await onSave({
+        employeeId: employeeId.trim() || generateNextEmployeeId(existingEmployees),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        gender,
+        dateOfBirth,
+        mobileNumber: mobileNumber.trim(),
+        personalEmail: personalEmail.trim(),
+        address: address.trim(),
+        photoUrl: photoUrl || undefined,
+        department,
+        designation,
+        reportingManagerId: reportingManagerId || undefined,
+        reportingManagerName: reportingManager
+          ? `${reportingManager.firstName} ${reportingManager.lastName}`
+          : undefined,
+        employmentType,
+        joiningDate,
+        companyEmail: companyEmail.trim().toLowerCase(),
+        temporaryPassword: password,
+        confirmPassword,
+        role,
+        dashboardAccess,
+        status: 'Active',
+        createdBy: 'Admin',
+      });
 
-    onClose();
+      if (result !== false) {
+        onClose();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -305,9 +381,19 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
                   required
                   placeholder="e.g. John"
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    markTouched('firstName');
+                  }}
+                  onBlur={() => markTouched('firstName')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'firstName',
+                    firstNameError
+                  )}`}
                 />
+                {shouldShowError('firstName', firstNameError) && (
+                  <p className="mt-1 text-xs text-rose-600">{firstNameError}</p>
+                )}
               </div>
 
               <div>
@@ -319,9 +405,19 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
                   required
                   placeholder="e.g. Smith"
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    markTouched('lastName');
+                  }}
+                  onBlur={() => markTouched('lastName')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'lastName',
+                    lastNameError
+                  )}`}
                 />
+                {shouldShowError('lastName', lastNameError) && (
+                  <p className="mt-1 text-xs text-rose-600">{lastNameError}</p>
+                )}
               </div>
 
               <div>
@@ -350,14 +446,32 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Mobile Number <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="tel"
-                  placeholder="+91 98765 43210"
+                  required
+                  placeholder="9876543210"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setMobileNumber(e.target.value);
+                    markTouched('mobileNumber');
+                  }}
+                  onBlur={() => markTouched('mobileNumber')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'mobileNumber',
+                    mobileNumberError
+                  )}`}
                 />
+                {shouldShowError('mobileNumber', mobileNumberError) && (
+                  <p className="mt-1 text-xs text-rose-600">{mobileNumberError}</p>
+                )}
+                {shouldShowValid('mobileNumber', mobileNumberError) && (
+                  <p className="mt-1 text-[11px] text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Valid 10-digit mobile number
+                  </p>
+                )}
               </div>
 
               <div>
@@ -402,9 +516,20 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
                   type="text"
                   required
                   value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setEmployeeId(e.target.value);
+                    markTouched('employeeId');
+                  }}
+                  onBlur={() => markTouched('employeeId')}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                    'employeeId',
+                    employeeIdError,
+                    employeeId.length > 0
+                  )}`}
                 />
+                {shouldShowError('employeeId', employeeIdError, employeeId.length > 0) && (
+                  <p className="mt-1 text-xs text-rose-600">{employeeIdError}</p>
+                )}
               </div>
 
               <div>
@@ -506,16 +631,31 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
               <input
                 type="email"
                 required
+                placeholder="employee@gmail.com"
                 value={companyEmail}
                 onChange={(e) => {
                   setCompanyEmail(e.target.value);
                   setIsEmailCustomized(true);
+                  markTouched('companyEmail');
                 }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 bg-slate-50"
+                onBlur={() => markTouched('companyEmail')}
+                className={`w-full px-3 py-2 border rounded-lg text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 bg-slate-50 ${getFieldBorderClass(
+                  'companyEmail',
+                  companyEmailError,
+                  companyEmail.length > 0
+                )}`}
               />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Generated as firstname.lastname@company.com with automatic duplicate resolution.
-              </p>
+              {shouldShowError('companyEmail', companyEmailError, companyEmail.length > 0) ? (
+                <p className="mt-1 text-xs text-rose-600">{companyEmailError}</p>
+              ) : shouldShowValid('companyEmail', companyEmailError, companyEmail.length > 0) ? (
+                <p className="mt-1 text-[11px] text-emerald-600 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Valid Gmail address
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Generated as firstname.lastname@gmail.com with automatic duplicate resolution.
+                </p>
+              )}
             </div>
 
             {/* Password Credentials Configuration (Manual Entry with Optional Auto-Generate) */}
@@ -523,7 +663,7 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Login Password Credentials
+                    Login Password Credentials <span className="text-rose-500">*</span>
                   </label>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     {passwordMode === 'manual'
@@ -546,8 +686,12 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
                   <button
                     type="button"
                     onClick={() => {
+                      const generated = generateTemporaryPassword(10);
                       setPasswordMode('auto');
-                      setPassword(generateTemporaryPassword(10));
+                      setPassword(generated);
+                      setConfirmPassword(generated);
+                      markTouched('password');
+                      markTouched('confirmPassword');
                     }}
                     className={`px-3 py-1 rounded-md transition flex items-center gap-1 ${
                       passwordMode === 'auto'
@@ -560,52 +704,109 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter employee password manually (min 6 characters)..."
-                  className="w-full bg-white px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  title={showPassword ? 'Hide Password' : 'Show Password'}
-                  className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCopyPassword}
-                  title="Copy Password"
-                  className={`p-2 rounded-lg transition flex items-center gap-1 ${
-                    copiedPassword ? 'bg-emerald-100 text-emerald-800' : 'text-slate-500 hover:bg-slate-200'
-                  }`}
-                >
-                  {copiedPassword ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                </button>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      markTouched('password');
+                    }}
+                    onBlur={() => markTouched('password')}
+                    placeholder="Enter strong password (min 8 characters)..."
+                    className={`w-full bg-white px-3 py-2 border rounded-lg text-sm font-mono tracking-wider text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                      'password',
+                      passwordError
+                    )}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
+                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopyPassword}
+                    title="Copy Password"
+                    className={`p-2 rounded-lg transition flex items-center gap-1 ${
+                      copiedPassword ? 'bg-emerald-100 text-emerald-800' : 'text-slate-500 hover:bg-slate-200'
+                    }`}
+                  >
+                    {copiedPassword ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                {shouldShowError('password', passwordError) && (
+                  <p className="mt-1 text-xs text-rose-600">{passwordError}</p>
+                )}
+                {shouldShowValid('password', passwordError) && (
+                  <p className="mt-1 text-[11px] text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Strong password policy met
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Confirm Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      markTouched('confirmPassword');
+                    }}
+                    onBlur={() => markTouched('confirmPassword')}
+                    placeholder="Re-enter password..."
+                    className={`w-full bg-white px-3 py-2 border rounded-lg text-sm font-mono tracking-wider text-slate-900 focus:outline-none focus:ring-2 ${getFieldBorderClass(
+                      'confirmPassword',
+                      confirmPasswordError
+                    )}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    title={showConfirmPassword ? 'Hide Password' : 'Show Password'}
+                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {shouldShowError('confirmPassword', confirmPasswordError) && (
+                  <p className="mt-1 text-xs text-rose-600">{confirmPasswordError}</p>
+                )}
+                {shouldShowValid('confirmPassword', confirmPasswordError) && (
+                  <p className="mt-1 text-[11px] text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Passwords match
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
                 <span>
-                  {password.length === 0 ? (
-                    <span className="text-slate-400">Type a custom password or click auto-generate</span>
-                  ) : password.length < 6 ? (
-                    <span className="text-amber-600 font-medium">⚠️ Minimum 6 characters required</span>
-                  ) : (
-                    <span className="text-emerald-600 font-medium">✓ Valid password length ({password.length} chars)</span>
-                  )}
+                  8+ chars, uppercase, lowercase, number, special char (!@#$%^&*()_+-=?.,), no spaces
                 </span>
                 <button
                   type="button"
                   onClick={() => {
-                    setPassword(generateTemporaryPassword(10));
+                    const generated = generateTemporaryPassword(10);
+                    setPassword(generated);
+                    setConfirmPassword(generated);
                     setPasswordMode('auto');
+                    markTouched('password');
+                    markTouched('confirmPassword');
                   }}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline shrink-0 ml-2"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Generate Random Password
                 </button>
@@ -677,9 +878,10 @@ export const AddEmployeeDrawer: React.FC<AddEmployeeDrawerProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md transition"
+              disabled={!isFormValid || isSubmitting}
+              className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md transition"
             >
-              Save Employee
+              {isSubmitting ? 'Saving...' : 'Save Employee'}
             </button>
           </div>
         </form>

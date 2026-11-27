@@ -127,8 +127,9 @@ export class EmployeeController {
     try {
       const result = await employeeService.resetEmployeePassword(
         Number(req.params.id),
-        req.body?.newPassword || req.body?.password,
-        req.user!.userId
+        req.body?.newPassword ?? req.body?.password,
+        req.user!.userId,
+        req.body?.confirmPassword ?? req.body?.confirm_password
       );
       sendSuccess(res, result, 'Employee password reset successfully');
     } catch (error) {

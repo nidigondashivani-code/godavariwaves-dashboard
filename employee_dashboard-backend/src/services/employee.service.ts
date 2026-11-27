@@ -22,8 +22,15 @@ import {
 } from '../models';
 import { AppError } from '../utils/appError.util';
 import { hashPassword } from '../utils/password.util';
-import { generateSecurePassword } from '../helpers/passwordGenerator.helper';
 import { getTodayDateString } from '../utils/dateUtils.util';
+import {
+  validateCompanyEmailFormat,
+  validatePhoneFormat,
+  validateStrongPassword,
+  EMAIL_ERRORS,
+  PHONE_ERRORS,
+  PASSWORD_ERRORS,
+} from '../validators/employee.validator';
 import auditLogService from './auditLog.service';
 import departmentService from './department.service';
 import notificationService from './notification.service';
@@ -36,6 +43,8 @@ export interface CreateEmployeeDTO {
   company_email: string;
   password?: string;
   temporary_password?: string;
+  confirm_password?: string;
+  confirmPassword?: string;
   phone?: string;
   profile_picture?: string | null;
   profilePicture?: string | null;
@@ -140,13 +149,41 @@ export class EmployeeService {
   }
 
   public async createEmployee(dto: CreateEmployeeDTO, adminUserId: number) {
+    const emailErr = validateCompanyEmailFormat(dto.company_email);
+    if (emailErr) {
+      throw new AppError(emailErr, 400);
+    }
+
+    const phoneErr = validatePhoneFormat(dto.phone);
+    if (phoneErr) {
+      throw new AppError(phoneErr, 400);
+    }
+
+    const rawPassword = dto.password !== undefined ? dto.password : dto.temporary_password;
+    const passErr = validateStrongPassword(rawPassword);
+    if (passErr) {
+      throw new AppError(passErr, 400);
+    }
+
+    const rawConfirm =
+      dto.confirm_password !== undefined ? dto.confirm_password : dto.confirmPassword;
+    if (rawConfirm !== undefined && rawConfirm !== rawPassword) {
+      throw new AppError(PASSWORD_ERRORS.MISMATCH, 400);
+    }
+
     const email = dto.company_email.trim().toLowerCase();
-    const [existingUser, existingEmpEmail] = await Promise.all([
+    const phone = dto.phone!;
+
+    const [existingUser, existingEmpEmail, existingEmpPhone] = await Promise.all([
       User.findOne({ where: { email } }),
       Employee.findOne({ where: { company_email: email } }),
+      Employee.findOne({ where: { phone, is_deleted: false } }),
     ]);
     if (existingUser || existingEmpEmail) {
-      throw new AppError('An account with this company email already exists.', 409);
+      throw new AppError(EMAIL_ERRORS.ALREADY_REGISTERED, 409);
+    }
+    if (existingEmpPhone) {
+      throw new AppError(PHONE_ERRORS.ALREADY_REGISTERED, 409);
     }
 
     // Resolve or generate Employee Code and strictly prevent duplicates
@@ -196,11 +233,7 @@ export class EmployeeService {
     }
     if (!role) throw new AppError('Invalid role selected.', 400);
 
-    const rawPassword = (dto.password || dto.temporary_password)?.trim() || generateSecurePassword(12);
-    if (rawPassword.length < 6) {
-      throw new AppError('Temporary password must be at least 6 characters long.', 400);
-    }
-    const passwordHash = await hashPassword(rawPassword);
+    const passwordHash = await hashPassword(rawPassword as string);
 
     const empStatus = dto.employment_status || 'Active';
     const isUserActive =
@@ -236,7 +269,7 @@ export class EmployeeService {
           last_name: dto.last_name.trim(),
           full_name: fullName,
           company_email: email,
-          phone: dto.phone || null,
+          phone,
           profile_picture: savedProfilePic,
           department_id: resolvedDeptId,
           designation_id: resolvedDesigId,
@@ -297,7 +330,6 @@ export class EmployeeService {
       employee: fullEmp,
       generatedCredentials: {
         email,
-        temporaryPassword: rawPassword,
       },
     };
   }
@@ -310,9 +342,47 @@ export class EmployeeService {
     if (updates.first_name !== undefined) emp.first_name = updates.first_name.trim();
     if (updates.last_name !== undefined) emp.last_name = updates.last_name.trim();
     emp.full_name = `${emp.first_name} ${emp.last_name}`.trim();
-    if (updates.phone !== undefined) emp.phone = updates.phone;
-    if (updates.department_id !== undefined) emp.department_id = updates.department_id;
-    if (updates.designation_id !== undefined) emp.designation_id = updates.designation_id;
+    if (updates.gender !== undefined) emp.gender = updates.gender;
+
+    if (updates.phone !== undefined) {
+      const phoneErr = validatePhoneFormat(updates.phone);
+      if (phoneErr) {
+        throw new AppError(phoneErr, 400);
+      }
+      const existingPhone = await Employee.findOne({
+        where: { phone: updates.phone, is_deleted: false, id: { [Op.ne]: emp.id } },
+      });
+      if (existingPhone) {
+        throw new AppError(PHONE_ERRORS.ALREADY_REGISTERED, 409);
+      }
+      emp.phone = updates.phone;
+    }
+
+    if (updates.department_id !== undefined) {
+      emp.department_id = updates.department_id;
+    } else if (updates.department_name?.trim()) {
+      const dept = await Department.findOne({ where: { name: updates.department_name.trim() } });
+      if (!dept) {
+        throw new AppError(`Department "${updates.department_name}" does not exist.`, 400);
+      }
+      emp.department_id = dept.id;
+    }
+
+    if (updates.designation_id !== undefined) {
+      emp.designation_id = updates.designation_id;
+    } else if (updates.designation_title?.trim()) {
+      const desigWhere: Record<string, unknown> = { title: updates.designation_title.trim() };
+      if (emp.department_id) desigWhere.department_id = emp.department_id;
+      let desig = await Designation.findOne({ where: desigWhere });
+      if (!desig && emp.department_id) {
+        desig = await Designation.findOne({ where: { title: updates.designation_title.trim() } });
+      }
+      if (!desig) {
+        throw new AppError(`Designation "${updates.designation_title}" does not exist.`, 400);
+      }
+      emp.designation_id = desig.id;
+    }
+
     if (updates.reporting_manager_id !== undefined) emp.reporting_manager_id = updates.reporting_manager_id;
     if (updates.employment_type !== undefined) {
       const v = String(updates.employment_type).toLowerCase();
@@ -330,12 +400,19 @@ export class EmployeeService {
 
     const user = await User.findByPk(emp.user_id);
 
-    if (updates.company_email !== undefined && updates.company_email.trim()) {
-      const newEmail = updates.company_email.trim().toLowerCase();
-      if (newEmail !== emp.company_email) {
-        const existing = await User.findOne({ where: { email: newEmail } });
-        if (existing && existing.id !== emp.user_id) {
-          throw new AppError('An account with this company email already exists.', 409);
+    if (updates.company_email !== undefined) {
+      const emailErr = validateCompanyEmailFormat(updates.company_email);
+      if (emailErr) {
+        throw new AppError(emailErr, 400);
+      }
+      const newEmail = updates.company_email.toLowerCase();
+      if (newEmail !== emp.company_email.toLowerCase()) {
+        const [existingUser, existingEmp] = await Promise.all([
+          User.findOne({ where: { email: newEmail, id: { [Op.ne]: emp.user_id } } }),
+          Employee.findOne({ where: { company_email: newEmail, id: { [Op.ne]: emp.id } } }),
+        ]);
+        if (existingUser || existingEmp) {
+          throw new AppError(EMAIL_ERRORS.ALREADY_REGISTERED, 409);
         }
         emp.company_email = newEmail;
         if (user) {
@@ -346,11 +423,30 @@ export class EmployeeService {
 
     await emp.save();
     if (user) {
-      if (updates.role_id !== undefined) user.role_id = updates.role_id;
+      if (updates.role_id !== undefined) {
+        user.role_id = updates.role_id;
+      } else if (updates.role_name) {
+        const role = await Role.findOne({ where: { name: updates.role_name } });
+        if (!role) throw new AppError('Invalid role selected.', 400);
+        user.role_id = role.id;
+      }
       if (updates.dashboard_access !== undefined) user.dashboard_access = updates.dashboard_access;
       if (updates.is_active !== undefined) user.is_active = updates.is_active;
-      if (updates.password && updates.password.trim().length >= 6) {
-        user.password_hash = await hashPassword(updates.password.trim());
+      else if (updates.dashboard_access_enabled !== undefined) {
+        user.is_active = emp.employment_status !== 'Inactive' && Boolean(updates.dashboard_access_enabled);
+      }
+      if (updates.password !== undefined) {
+        const passErr = validateStrongPassword(updates.password);
+        if (passErr) {
+          throw new AppError(passErr, 400);
+        }
+        const rawConfirm =
+          updates.confirm_password !== undefined ? updates.confirm_password : updates.confirmPassword;
+        if (rawConfirm !== undefined && rawConfirm !== updates.password) {
+          throw new AppError(PASSWORD_ERRORS.MISMATCH, 400);
+        }
+        user.password_hash = await hashPassword(updates.password);
+        user.refresh_token_hash = null;
       }
       await user.save();
     }
@@ -465,17 +561,25 @@ export class EmployeeService {
     return this.getEmployeeById(emp.id);
   }
 
-  public async resetEmployeePassword(id: number, newPassword: string | undefined, adminUserId: number) {
+  public async resetEmployeePassword(
+    id: number,
+    newPassword: string | undefined,
+    adminUserId: number,
+    confirmPassword?: string
+  ) {
     const emp = await Employee.findOne({ where: { id, is_deleted: false } });
     if (!emp) throw new AppError('Employee not found.', 404);
 
-    const rawPassword = newPassword?.trim() || generateSecurePassword(12);
-    if (rawPassword.length < 6) {
-      throw new AppError('Password must be at least 6 characters long.', 400);
+    const passErr = validateStrongPassword(newPassword);
+    if (passErr) {
+      throw new AppError(passErr, 400);
+    }
+    if (confirmPassword !== undefined && confirmPassword !== newPassword) {
+      throw new AppError(PASSWORD_ERRORS.MISMATCH, 400);
     }
 
     await User.update(
-      { password_hash: await hashPassword(rawPassword), refresh_token_hash: null },
+      { password_hash: await hashPassword(newPassword as string), refresh_token_hash: null },
       { where: { id: emp.user_id } }
     );
 
@@ -489,7 +593,7 @@ export class EmployeeService {
     return {
       employeeId: emp.id,
       email: emp.company_email,
-      temporaryPassword: rawPassword,
+      passwordReset: true,
     };
   }
 

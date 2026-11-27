@@ -19,8 +19,8 @@ export const hrmsApi = {
     apiClient.patch(`/employees/${id}/deactivate`, { reason }).then((r) => r.data.data),
   toggleDashboardAccess: (id: number, enabled: boolean) =>
     apiClient.patch(`/employees/${id}/dashboard-access`, { enabled }).then((r) => r.data.data),
-  resetEmployeePassword: (id: number, newPassword?: string) =>
-    apiClient.post(`/employees/${id}/reset-password`, { newPassword }).then((r) => r.data.data),
+  resetEmployeePassword: (id: number, newPassword: string, confirmPassword: string) =>
+    apiClient.post(`/employees/${id}/reset-password`, { newPassword, confirmPassword }).then((r) => r.data.data),
   softDeleteEmployee: (id: number) =>
     apiClient.delete(`/employees/${id}`).then((r) => r.data.data),
   bulkEmployeeAction: (
